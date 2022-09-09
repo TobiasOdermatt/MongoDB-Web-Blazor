@@ -1,0 +1,54 @@
+﻿@inherits LayoutComponentBase
+@inject IJSRuntime js
+@using Data.Helpers
+@inject AppData appData
+
+<PageTitle>BlazorServerMyMongo</PageTitle>
+
+<div class="page @GetCssClass()">
+    <div class="sidebar">
+        <NavManager />
+    </div>
+    <main>
+        <div class="top-row px-4 page">
+            <h5 class="path-text">/</h5>
+            <select class="page" @onchange="ChangingTheme" style="float-right">
+                @foreach(var theme in themes){
+                    <option selected="@IsSelectedTheme(theme)" value="@theme">@theme</option>
+                }
+                </select>
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code{
+    private string selectedTheme = "Light";
+    private List<string> themes = new List<string> { "Light", "Dark" };
+    private readonly string keyTheme = "theme";
+
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrEmpty(appData.Theme))
+            selectedTheme = appData.Theme;
+    }
+
+    private string GetCssClass()
+    {
+        return selectedTheme == "Dark" ? String.Empty : "light-mode";
+    }
+
+    private bool IsSelectedTheme(string theme)
+    {
+        return theme == selectedTheme;
+    }
+
+    private async Task ChangingTheme(ChangeEventArgs e)
+    {
+        selectedTheme = e.Value.ToString();
+        await js.InvokeVoidAsync("setCookie", keyTheme, selectedTheme,360);
+    }
+}

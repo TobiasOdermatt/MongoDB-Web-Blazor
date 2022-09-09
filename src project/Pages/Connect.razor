@@ -1,0 +1,26 @@
+﻿@page "/Connect"
+
+<PageTitle>Add Connection</PageTitle>
+
+<form id="connect">
+        <div class="form-group py-1">
+        <label for="username">Username</label>
+        <input type="text" id="username" class="form-control page" placeholder="Username (optional)" />
+    </div>
+        <div class="form-group py-1">
+        <label for="password">Password</label>
+            <input type="password" class="form-control page" id="password" placeholder="Password (optional)" />
+    </div>
+    <br>
+    <button type="button" class="btn btn-primary" onclick="Validate()">Save Connection</button>
+</form>
+<br />
+<div class="py-4">
+    <br />
+<div class="alert alert-success" role="alert" id="alert-success" style="display: none">
+  MongoDB Connection was successful
+</div>
+<div class="alert alert-danger" role="alert" id="alert-danger" style="display: none">
+  MongoDB Connection failed
+</div>
+</div>

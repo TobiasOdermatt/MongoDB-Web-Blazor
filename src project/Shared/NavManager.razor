@@ -1,0 +1,135 @@
+﻿<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">BlazorServerMyMongo</a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        @if (Authenticated)
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="Dashboard">
+                    <span class="oi oi-home" aria-hidden="true"></span> Dashboard
+                </NavLink>
+            </div>
+            
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="Query">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" aria-hidden="true" height="22" fill="currentColor" class="bi bi-lightning-fill svgicon" viewBox="0 0 16 16">
+                        <path d="M5.52.359A.5.5 0 0 1 6 0h4a.5.5 0 0 1 .474.658L8.694 6H12.5a.5.5 0 0 1 .395.807l-7 9a.5.5 0 0 1-.873-.454L6.823 9.5H3.5a.5.5 0 0 1-.48-.641l2.5-8.5z"></path>
+                    </svg>  Query Terminal
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="Statistic">
+                    <img src="../icons/pie_chart.svg" class="svgicon blacktowhite" />  Statistic
+                </NavLink>
+            </div>
+            
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="access_log">
+                    <img src="../icons/security.svg" class="svgicon blacktowhite" />  Access Log
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="Settings">
+                    <img src="../icons/settings.svg" class="svgicon blacktowhite" />  Settings
+                </NavLink>
+            </div>
+        }
+        @if (UseAuthorization)
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="api/Auth/Logout">
+                    <span class="oi oi-plus" aria-hidden="true"></span> New Connection
+                </NavLink>
+            </div>
+        }
+        @if (UseAuthorization && Authenticated)
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="api/Auth/Logout">
+                    <span class="oi oi-account-logout" aria-hidden="true"></span> Logout
+                </NavLink>
+            </div>
+        }
+    </nav>
+</div>
+<style>
+    .blacktowhite{
+        filter: brightness(0) invert(1);
+    }
+    .svgicon{
+        text-align: center;
+        box-sizing: content-box;
+        margin-right: 0.5em;
+    }
+</style>
+@using BlazorServerMyMongo.Data.Helpers
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+    
+    [Inject]
+    IHttpContextAccessor? HttpContextAccessor { get; set; }
+    public bool UseAuthorization { get; set; } = true;
+    public bool Authenticated { get; set; } = false;
+    @inject NavigationManager NavigationManager;
+    @inject ConfigManager ConfigManager;
+    @using Data.OTP;
+
+    protected override async Task OnInitializedAsync()
+    {
+        LoadConfig();
+        if (HttpContextAccessor is null || HttpContextAccessor.HttpContext is null)
+        {
+            Authenticated = false;
+            return;
+        }
+
+        OTPAuthCookieManagement AuthManager = new(HttpContextAccessor.HttpContext);
+        if (AuthManager.IsCookieValid())
+        {
+            Authenticated = true;
+            return;
+        }
+
+        Authenticated = false;
+        if (NavigationManager.Uri != NavigationManager.BaseUri + "Connect")
+            NavigationManager.NavigateTo("/Connect");
+
+        await base.OnInitializedAsync();
+    }
+
+    private void LoadConfig()
+    {
+        LoadUseAuthorization(ConfigManager.ReadKey("UseLogin"));
+    }
+
+    private void LoadUseAuthorization(string? AuthBoolString)
+    {
+        if (AuthBoolString is null)
+            return;
+        
+        if (Boolean.TryParse(AuthBoolString, out bool AuthBool))
+        {
+            UseAuthorization = AuthBool;
+        }
+        else
+        {
+            Console.WriteLine("UseAuthorization in the config.json is not a valid boolean");
+        }
+    }
+}

@@ -1,0 +1,54 @@
+﻿@code {
+    private BlazorServerMyMongo.Pages.Component.Dashboard.DeleteDBModal? Modal { get; set; }
+}
+<DeleteDBModal @ref="Modal" DBName="@name" />
+<div class="py-1 col-md-3 mb-3">
+    <div class="shadow card h-100 rounded cardbox">
+        <div class="card-header py-1">
+            <div class="card-title">
+            <h4 class="title-card">@name</h4>
+                </div>
+            <button type="button" @onclick="() => Modal.Open()" class=" btn-close deleteicon blacktowhitetheme" aria-label="Close"></button>
+            </div>
+        <div class="card-body">
+            <p class="card-text">Size: @sizeOnDisk <br /> 
+                @if (CollectionAmount != -1)
+                {
+                    <text>Collection Amount: @CollectionAmount</text>
+                }
+                    <br />
+                Empty: @empty</p>
+            <a href="CollectionManager/@name" class="btn btn-primary">Open database</a>
+    </div>
+    </div>
+</div>
+@code {
+    [Parameter]
+    public MongoDB.Bson.BsonDocument DBObject { get; set; } = default!;
+    [Parameter]
+    public int CollectionAmount { get; set; }
+
+    public string? name { get; set; } = "";
+    public long? sizeOnDisk { get; set; } = 0;
+    public bool? empty { get; set; } = false;
+
+    protected override Task OnParametersSetAsync()
+    {
+        LoadCardData();
+        return base.OnParametersSetAsync();
+    }
+
+    void LoadCardData()
+    {
+        DBObject = DBObject ?? new MongoDB.Bson.BsonDocument();
+
+        if (!string.IsNullOrEmpty(DBObject.GetValue("name").ToString()))
+            name = DBObject.GetValue("name").AsString;
+
+        if (!string.IsNullOrEmpty(DBObject.GetValue("sizeOnDisk").ToString()))
+            sizeOnDisk = DBObject.GetValue("sizeOnDisk").AsInt64;
+
+        if (!string.IsNullOrEmpty(DBObject.GetValue("empty").ToString()))
+            empty = DBObject.GetValue("empty").AsBoolean;
+    }
+}

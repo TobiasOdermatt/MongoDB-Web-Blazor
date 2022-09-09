@@ -1,0 +1,38 @@
+﻿@page "/Dashboard"
+@page "/"
+@inject DBController DBController;
+
+@using BlazorServerMyMongo.Pages.Component.Dashboard;
+<PageTitle>Dashboard</PageTitle>
+
+<h2>List of all databases</h2>
+<div class="row gx-4 gx-lg-4">
+    @{
+        List<MongoDB.Bson.BsonDocument>? _dbList = ListAllDBs();
+        int count = _dbList != null ? _dbList.Count : 0;
+        int CollectionAmount = 0;
+    }
+    <p class="second-text-color">@count Databases found</p>
+
+    @if (_dbList is not null)
+    {
+        @foreach (MongoDB.Bson.BsonDocument db in _dbList)
+        {
+            if (!string.IsNullOrEmpty(db.GetValue("name").ToString()))
+                CollectionAmount = GetCollectionAmount(db.GetValue("name").AsString);
+            <ShowDBCard DBObject=db CollectionAmount=CollectionAmount />
+        }
+    }
+</div>
+@code{
+    @using Data.DB;
+    private List<MongoDB.Bson.BsonDocument>? ListAllDBs()
+    {
+        return DBController.ListAllDatabases();
+    }
+
+    private int GetCollectionAmount (string dbname)
+    {
+        return DBController.GetNumberOfCollections(dbname);
+    }
+}

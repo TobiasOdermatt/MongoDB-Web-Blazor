@@ -1,0 +1,10 @@
+﻿@page "/"
+@namespace BlazorServerMyMongo.Pages
+@using BlazorServerMyMongo.Data.Helpers
+@model HostModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    Layout = "_Layout";
+}
+
+<component type="typeof(App)" render-mode="Server" />

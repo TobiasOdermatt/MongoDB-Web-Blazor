@@ -1,0 +1,30 @@
+﻿@page "/CollectionManager/{dbname}"
+@inject DBController DBController;
+<h2>List of all collections</h2>
+<div class="row gx-4 gx-lg-4">
+    @{
+        List<MongoDB.Bson.BsonDocument>? CollectionList = ListAllCollections();
+        int count = CollectionList != null ? CollectionList.Count : 0;
+    }
+    <p class="second-text-color">@count collections found</p>
+    @if (CollectionList == null)
+    {
+        <p class="text-danger">Not authorized on @DBName</p>
+    }
+
+</div>
+@code {
+    [Parameter]
+    public string? DBName { get; set; }
+    }
+
+@code {
+    @using Data.DB;
+    private List<MongoDB.Bson.BsonDocument>? ListAllCollections()
+    {
+        if (DBName is null)
+            return null;
+
+        return DBController.ListAllCollectionsfromDB(DBName);
+    }
+}

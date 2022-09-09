@@ -1,0 +1,169 @@
+@import url('open-iconic/font/css/open-iconic-bootstrap.min.css');
+
+:root {
+    /*dark theme*/
+    --background: #181e24;
+    --font-color: white;
+    --secound-text-color: rgba(255,255,255,.5);
+    --secound-color: #181e20;
+    --third-color: #25292c;
+    --fifth-color: #212529;
+    --colornumber: 1;
+}
+
+.light-mode {
+    --background: white;
+    --font-color: black;
+    --secound-text-color: rgb(6 6 6 / 50%);
+    --secound-color: floralwhite;
+    --third-color: #e5e5e5;
+    --fifth-color: #FFF;
+    --colornumber: 0;
+}
+.blacktowhitetheme {
+    filter: brightness(0) invert(var(--colornumber));
+}
+.title-card{
+    margin-top: 0.3rem !important;    
+}
+
+.p {
+    color: var(--font-color);
+    background-color: var(--background);
+}
+
+.modal {
+    background-color: #00000080;
+}
+
+.modal-dialog{
+    margin-top: 4rem;
+}
+
+.modal-content {
+    color: var(--font-color);
+    border: none !important;
+}
+
+.modal-header {
+    background-color: var(--third-color) !important;
+    border-bottom: 1px solid var(--secound-color);
+}
+
+.modal-body {
+    background-color: var(--fifth-color);
+}
+.modal-footer {
+    background-color: var(--third-color) !important;
+    border-top: 1px solid var(--secound-color);
+}
+
+
+.page {
+    background-color: var(--background) !important;
+    color: var(--font-color) !important;
+}
+
+.path-text {
+    margin-right: auto;
+    position: absolute;
+    bottom: 0;
+    left: 3rem;
+}
+
+.second-text-color {
+    color: var(--secound-text-color) !important;
+}
+
+html, body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    color: var(--font-color) !important;
+}
+
+h1:focus {
+    outline: none;
+}
+
+a, .btn-link {
+    color: #0071c1;
+}
+
+.btn-primary {
+    color: #fff;
+    background-color: #1b6ec2;
+    border-color: #1861ac;
+}
+
+.content {
+    padding-top: 1.1rem;
+}
+
+.valid.modified:not([type=checkbox]) {
+    outline: 1px solid #26b050;
+}
+
+.invalid {
+    outline: 1px solid red;
+}
+
+.validation-message {
+    color: red;
+}
+
+#blazor-error-ui {
+    background: black;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    color: white;
+    z-index: 1000;
+}
+
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+}
+
+.blazor-error-boundary {
+    background-color: var(--background) !important;
+    color: var(--font-color) !important;
+    padding: 1rem 1rem 1rem 3.7rem;
+}
+
+.blazor-error-boundary::after {
+   content: "An error has occurred."
+}
+
+.deleteicon{
+    right: 0.3rem;
+    top: 0.6rem;
+    position: absolute;
+}
+
+.alert-danger{
+    color: darkblue;
+}
+.alert-success {
+    color: darkblue;
+}
+
+.cardbox {
+    border: 1px dashed var(--secound-color);
+    background-color: var(--fifth-color);
+}
+
+.card-header {
+    border-bottom: 1px solid var(--secound-color);
+    background-color: var(--third-color) !important;
+}
+
+.btn-primary {
+    float: right;
+    color: white;
+}
