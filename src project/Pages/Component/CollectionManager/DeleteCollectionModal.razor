@@ -1,0 +1,92 @@
+﻿@using BlazorServerMyMongo.Data.DB
+<div class="modal @ModalClass" tabindex="-1" role="dialog" style="display:@ModalDisplay">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content modal-dialog">
+            <div class="modal-header">
+                <h5 class="modal-title py-2">Are you absolutely sure?</h5>
+                <button type="button" class="btn-close blacktowhitetheme" data-dismiss="modal" @onclick="() => Close()" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>
+                    Warning this action can not be undone.<br />
+                    This will permanently delete the collection. <br />
+                    Please retype the collection name <strong>"@CollectionName"</strong> to confirm
+                </p>
+
+
+                <input type="text" @bind="@ConfirmationText" @oninput="@((e) => { ConfirmationText=(string)e.Value;})" class="form-control page" placeholder="@CollectionName" />
+                <br />
+                @if (success is true)
+                {
+                    <p class="text-success">Collection was deleted successfully</p>
+                }
+                else if (success is false)
+                {
+                    <p class="text-danger">Ooops, something went wrong</p>
+                }
+            </div>
+            <div class="modal-footer py-2">
+                @if (ConfirmationText == CollectionName)
+                {
+                    <button type="submit" class="btn btn-danger" @onclick="DeleteCollection"> Delete Collection</button>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-danger" disabled>Delete Collection</button>
+
+                }
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="() => Close()">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@if (ShowBackdrop)
+{
+    <div class="modal-backdrop fade @ModalClass" style="display: @ModalDisplay"></div>
+}
+
+@code {
+    [Parameter]
+    public string CollectionName { get; set; } = "";
+    [Parameter]
+    public string DBName { get; set; } = "";
+    private string ConfirmationText { get; set; } = "";
+    private bool? success = null;
+
+    @inject DBController dbcontroller
+    public Guid Guid = Guid.NewGuid();
+    public string ModalDisplay = "none;";
+    public string ModalClass = "";
+    public bool ShowBackdrop = false;
+
+    public async void Open()
+    {
+        ModalDisplay = "block;";
+        await Task.Delay(100);
+        ModalClass = "Show";
+        ShowBackdrop = true;
+        StateHasChanged();
+    }
+
+    public async void Close()
+    {
+        ModalClass = "";
+        await Task.Delay(100);
+        ModalDisplay = "none";
+        ShowBackdrop = false;
+        StateHasChanged();
+    }
+
+    public async Task DeleteCollection()
+    {
+        success = dbcontroller.DeleteCollection(DBName, CollectionName);
+        if (success is true)
+        {
+            await Task.Delay(1100);
+            @inject NavigationManager navigationManager;
+            navigationManager.NavigateTo(navigationManager.Uri, forceLoad: true);
+        }
+    }
+}

@@ -53,6 +53,9 @@ namespace BlazorServerMyMongo.Data.DB
             }
         }
 
+        //Get a specific collection from a DB based on the collectionName return JOBject
+
+
         //Delete DB by name
         public bool DeleteDB(string dbName)
         {
@@ -61,6 +64,23 @@ namespace BlazorServerMyMongo.Data.DB
             try
             {
                 Client.DropDatabase(dbName);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        //Delete Collection by name, and dbName
+        public bool DeleteCollection(string dbName, string collectionName)
+        {
+            if (Client is null)
+                return false;
+            try
+            {
+                var db = Client.GetDatabase(dbName);
+                db.DropCollection(collectionName);
                 return true;
             }
             catch
