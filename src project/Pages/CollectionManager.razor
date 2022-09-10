@@ -6,20 +6,25 @@
         List<MongoDB.Bson.BsonDocument>? CollectionList = ListAllCollections();
         int count = CollectionList != null ? CollectionList.Count : 0;
     }
-    <p class="second-text-color">@count collections found</p>
+    <p class="second-text-color">@count collections found on database @DBName</p>
     @if (CollectionList == null)
     {
         <p class="text-danger">Not authorized on @DBName</p>
+    }
+    else{
+        @foreach (var Collection in CollectionList)
+        {
+            @using BlazorServerMyMongo.Pages.Component.CollectionManager
+            <ShowCollectionCard CollectionObject="@Collection" DBName="@DBName" />
+        }
     }
 
 </div>
 @code {
     [Parameter]
     public string? DBName { get; set; }
-    }
 
-@code {
-    @using Data.DB;
+   @using Data.DB;
     private List<MongoDB.Bson.BsonDocument>? ListAllCollections()
     {
         if (DBName is null)

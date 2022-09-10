@@ -5,15 +5,18 @@
 @using BlazorServerMyMongo.Pages.Component.Dashboard;
 <PageTitle>Dashboard</PageTitle>
 
+<div class="top-div">
 <h2>List of all databases</h2>
-<div class="row gx-4 gx-lg-4">
     @{
         List<MongoDB.Bson.BsonDocument>? _dbList = ListAllDBs();
         int count = _dbList != null ? _dbList.Count : 0;
         int CollectionAmount = 0;
     }
-    <p class="second-text-color">@count Databases found</p>
-
+        <p class="second-text-color resultText">@count Databases found</p>
+        <button type="button" class="btn btn-primary addButton">Create database</button>
+</div>
+<br />
+<div class="row gx-4 gx-lg-4 bottom-div">
     @if (_dbList is not null)
     {
         @foreach (MongoDB.Bson.BsonDocument db in _dbList)
