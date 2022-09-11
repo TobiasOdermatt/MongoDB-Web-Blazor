@@ -1,0 +1,64 @@
+﻿@using BlazorServerMyMongo.Data.DB
+<div class="modal @ModalClass" tabindex="-1" role="dialog" style="display:@ModalDisplay">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content modal-dialog">
+            <div class="modal-header">
+                <h5 class="modal-title py-2">Create new database</h5>
+                <button type="button" class="btn-close blacktowhitetheme" data-dismiss="modal" @onclick="() => Close()" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p> Please type the database name</p>
+                <input type="text" @bind="@newDBName" class="form-control page" placeholder="database name" required/>    
+            </div>
+            <div class="modal-footer py-2">
+                    <button type="submit" class="btn btn-success" @onclick="CreateDB"> Create Database</button>
+ 
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="() => Close()">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@if (ShowBackdrop)
+{
+    <div class="modal-backdrop fade @ModalClass" style="display: @ModalDisplay"></div>
+}
+
+@code {
+    private string? newDBName { get; set; }
+    
+    @inject DBController dbcontroller
+    public Guid Guid = Guid.NewGuid();
+    public string ModalDisplay = "none;";
+    public string ModalClass = "";
+    public bool ShowBackdrop = false;
+
+    public async void Open()
+    {
+        ModalDisplay = "block;";
+        await Task.Delay(100);
+        ModalClass = "Show";
+        ShowBackdrop = true;
+        StateHasChanged();
+    }
+
+    public async void Close()
+    {
+        ModalClass = "";
+        await Task.Delay(100);
+        ModalDisplay = "none";
+        ShowBackdrop = false;
+        StateHasChanged();
+    }
+    
+    public async Task CreateDB()
+    {
+        if(!string.IsNullOrEmpty(newDBName) && newDBName != "")
+        {
+            await Task.Delay(10);
+            @inject NavigationManager navigationManager;
+            navigationManager.NavigateTo(navigationManager.BaseUri+"/CollectionManager/"+newDBName, forceLoad: true);
+        }
+    }
+}

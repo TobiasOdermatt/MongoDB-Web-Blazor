@@ -4,7 +4,10 @@
 
 @using BlazorServerMyMongo.Pages.Component.Dashboard;
 <PageTitle>Dashboard</PageTitle>
-
+@code {
+    private BlazorServerMyMongo.Pages.Component.Dashboard.CreateDBModal? CreateDBModal { get; set; }
+}
+<CreateDBModal @ref="CreateDBModal"></CreateDBModal>
 <div class="top-div">
 <h2>List of all databases</h2>
     @{
@@ -13,7 +16,7 @@
         int CollectionAmount = 0;
     }
         <p class="second-text-color resultText">@count Databases found</p>
-        <button type="button" class="btn btn-primary addButton">Create database</button>
+        <button type="button" @onclick="() => CreateDBModal.Open()" class="btn btn-primary addButton">Create database</button>
 </div>
 <br />
 <div class="row gx-4 gx-lg-4 bottom-div">
