@@ -8,7 +8,10 @@
             </div>
             <div class="modal-body">
                 <p> Please type the database name</p>
-                <input type="text" @bind="@newDBName" class="form-control page" placeholder="database name" required/>    
+                <input type="text" @bind="@newDBName" class="form-control page" placeholder="database name" required/>
+                <br />
+                <p> Please type the collection name</p>
+                <input type="text" @bind="@newCollectionName" class="form-control page" placeholder="collection name" required/>    
             </div>
             <div class="modal-footer py-2">
                     <button type="submit" class="btn btn-success" @onclick="CreateDB"> Create Database</button>
@@ -27,6 +30,7 @@
 
 @code {
     private string? newDBName { get; set; }
+    private string? newCollectionName { get; set; }
     
     @inject DBController dbcontroller
     public Guid Guid = Guid.NewGuid();
@@ -56,7 +60,11 @@
     {
         if(!string.IsNullOrEmpty(newDBName) && newDBName != "")
         {
-            await Task.Delay(10);
+            if(!string.IsNullOrEmpty(newCollectionName) && newCollectionName != "")
+            {
+            @inject DBController dbController;
+            dbController.CreateCollection(newDBName, newCollectionName);
+            }
             @inject NavigationManager navigationManager;
             navigationManager.NavigateTo(navigationManager.BaseUri+"/CollectionManager/"+newDBName, forceLoad: true);
         }
