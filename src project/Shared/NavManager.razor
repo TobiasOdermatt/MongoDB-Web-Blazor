@@ -93,6 +93,11 @@
     protected override async Task OnInitializedAsync()
     {
         LoadConfig();
+        if(UseAuthorization is false)
+        {
+            Authenticated = true;
+            return;
+        }
         if (HttpContextAccessor is null || HttpContextAccessor.HttpContext is null)
         {
             Authenticated = false;
