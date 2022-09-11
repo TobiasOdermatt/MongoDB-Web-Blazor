@@ -72,6 +72,22 @@ namespace BlazorServerMyMongo.Data.DB
             }
         }
 
+        //Create a Collection by name, and dbName
+        public bool CreateCollection(string dbName, string collectionName)
+        {
+            if (Client is null)
+                return false;
+            try
+            {
+                Client.GetDatabase(dbName).CreateCollection(collectionName);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         //Delete Collection by name, and dbName
         public bool DeleteCollection(string dbName, string collectionName)
         {
