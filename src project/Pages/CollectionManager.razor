@@ -1,7 +1,7 @@
 ﻿@page "/CollectionManager/{dbname}"
 @inject DBController DBController;
 <h2>List of all collections</h2>
-<div class="row gx-4 gx-lg-4">
+<div class="row bottom-div">
     @{
         List<MongoDB.Bson.BsonDocument>? CollectionList = ListAllCollections();
         int count = CollectionList != null ? CollectionList.Count : 0;
