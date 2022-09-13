@@ -104,5 +104,24 @@ namespace BlazorServerMyMongo.Data.DB
                 return false;
             }
         }
+
+        //Upload JSON to the collection by, dbName, collectionName, and the JSON
+        public bool UploadJSON(string dbName, string collectionName, string json)
+        {
+            if (Client is null)
+                return false;
+            try
+            {
+                var db = Client.GetDatabase(dbName);
+                var collection = db.GetCollection<BsonDocument>(collectionName);
+                var document = BsonDocument.Parse(json);
+                collection.InsertOne(document);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 }
