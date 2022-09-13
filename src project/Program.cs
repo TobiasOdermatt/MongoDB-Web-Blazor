@@ -16,7 +16,7 @@ ConfigManager configManager = new(config);
 builder.Services.AddSingleton<ConfigManager>(configManager);
 OTPFileManagement OTP = new();
 OTP.CleanUpOTPFiles();
-builder.Services.AddTransient<DBController>();
+builder.Services.AddScoped<DBController>();
 builder.Services.AddSingleton<AppData>();
 var app = builder.Build();
 

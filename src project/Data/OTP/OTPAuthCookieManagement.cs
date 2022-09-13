@@ -26,9 +26,6 @@ namespace BlazorServerMyMongo.Data.OTP
                 return false;
             DBController dBController = new();
 
-            if (DBController.Client != null)
-                return true;
-
             OTPManagement otpManager = new();
             string? decryptedData = otpManager.DecryptUserData(authOTP, otpFile.RandomString);
 
@@ -37,7 +34,7 @@ namespace BlazorServerMyMongo.Data.OTP
 
             (string username, string password) = otpManager.getUserData(decryptedData);
             DBConnector connector = new(username, password);
-            return DBController.Client != null;
+            return connector.Client != null;
         }
 
         public (string?, string?) ReadOTPCookie()

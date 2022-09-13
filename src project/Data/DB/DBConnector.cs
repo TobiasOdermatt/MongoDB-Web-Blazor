@@ -1,11 +1,10 @@
-﻿using MongoDB.Bson;
-using MongoDB.Driver;
+﻿using MongoDB.Driver;
 
 namespace BlazorServerMyMongo.Data.DB
 {
     public class DBConnector
     {
-        public static MongoClient? Client;
+        public MongoClient? Client;
         private static string? _dbHost;
         private static string? _dbPort;
         private static string? _dbRules;
@@ -38,14 +37,16 @@ namespace BlazorServerMyMongo.Data.DB
             {
                 MongoClient mongoClient = new(ConnectionString);
 
-                var testDB = mongoClient.GetDatabase("test");
-                var cmd = new BsonDocument("count", "foo");
-                var result = testDB.RunCommand<BsonDocument>(cmd);
+                // var testDB = mongoClient.GetDatabase("test");
+                // var cmd = new BsonDocument("count", "foo");
+                // var result = testDB.RunCommand<BsonDocument>(cmd);
+                var test = mongoClient.ListDatabases();
                 DBController dBController = new(mongoClient);
                 return mongoClient;
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                Console.WriteLine("Exception: Connection to DB failed \n" + e);
                 return null;
             }
         }

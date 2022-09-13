@@ -19,8 +19,6 @@ namespace BlazorServerMyMongo.Controllers
         //If data is correct UUID will be returned
         public IActionResult CreateOTP(ConnectRequestObject dataJSON)
         {
-            DBConnector.Client = null;
-            DBController.Client = null;
             OTPManagement otpManagement = new();
             string? decryptedData = otpManagement.DecryptUserData(dataJSON.AuthCookieKey, dataJSON.RandData);
             if (decryptedData is null)
@@ -30,7 +28,7 @@ namespace BlazorServerMyMongo.Controllers
             DBConnector connector = new(username, password);
 
             //If connection is successful, UUID will be returned
-            if (DBController.Client != null)
+            if (connector.Client != null)
             {
                 var uuid = Guid.NewGuid().ToString();
                 var uuidObject = GenerateUUIDObject(uuid);
@@ -55,8 +53,6 @@ namespace BlazorServerMyMongo.Controllers
                 return Redirect("/Connect");
 
             OTPFileManagement fileManger = new();
-            DBConnector.Client = null;
-            DBController.Client = null;
             fileManger.DeleteOTPFile(uuid);
             HttpContext.Response.Cookies.Delete("UUID");
             HttpContext.Response.Cookies.Delete("Token");
