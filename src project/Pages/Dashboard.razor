@@ -19,7 +19,7 @@
         <button type="button" @onclick="() => CreateDBModal.Open()" class="btn btn-primary addButton">Create database</button>
 </div>
 <br />
-<div class="row gx-4 gx-lg-4 bottom-div">
+<div class="row bottom-div">
     @if (_dbList is not null)
     {
         @foreach (MongoDB.Bson.BsonDocument db in _dbList)
