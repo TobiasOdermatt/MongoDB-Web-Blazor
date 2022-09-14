@@ -10,6 +10,7 @@ namespace BlazorServerMyMongo.Data.DB
         private static string? _dbRules;
         private static string? _customString;
         private static bool _useAuthorization = true;
+        static string? UUID;
 
         //Loads the connection values from config.json
         public DBConnector(IConfiguration config)
@@ -24,14 +25,17 @@ namespace BlazorServerMyMongo.Data.DB
             _customString = config["CustomConnectionString"];
         }
 
-        public DBConnector(string username, string password)
+        public DBConnector(string username, string password, string UUID)
         {
-            Client = DbConnect(username, password);
+            Client = DbConnect(username, password, UUID);
         }
 
-        public MongoClient? DbConnect(string username, string password)
+        public MongoClient? DbConnect(string username, string password, string UUID)
         {
             string ConnectionString = getConnectionString(username, password);
+            DBController controller = new();
+            if (DBController.UUID == UUID)
+                return DBController.Client;
 
             try
             {
@@ -41,7 +45,7 @@ namespace BlazorServerMyMongo.Data.DB
                 // var cmd = new BsonDocument("count", "foo");
                 // var result = testDB.RunCommand<BsonDocument>(cmd);
                 var test = mongoClient.ListDatabases();
-                DBController dBController = new(mongoClient);
+                DBController dBController = new(mongoClient, UUID);
                 return mongoClient;
             }
             catch (Exception e)
