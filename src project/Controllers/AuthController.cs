@@ -25,12 +25,12 @@ namespace BlazorServerMyMongo.Controllers
                 return NoContent();
 
             (string username, string password) = otpManagement.getUserData(decryptedData);
-            DBConnector connector = new(username, password);
+            var uuid = Guid.NewGuid().ToString();
+            DBConnector connector = new(username, password, uuid);
 
             //If connection is successful, UUID will be returned
             if (connector.Client != null)
             {
-                var uuid = Guid.NewGuid().ToString();
                 var uuidObject = GenerateUUIDObject(uuid);
 
                 DateTime localDate = DateTime.Now;

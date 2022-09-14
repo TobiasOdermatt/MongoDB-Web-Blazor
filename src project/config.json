@@ -1,8 +1,8 @@
 ﻿{
   "UseLogin": "true",
-  "DBHost": "localhost",
+  "DBHost": "37.120.165.125",
   "DBPort": "27017",
-  "DBRule": "admin?retryWrites=true",
+  "DBRule": "?authSource=admin",
 
   "CustomConnectionString": ""
 }

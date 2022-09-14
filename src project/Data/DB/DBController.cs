@@ -6,12 +6,13 @@ namespace BlazorServerMyMongo.Data.DB
     public class DBController
     {
         public static MongoClient? Client;
-
+        public static string? UUID;
         public DBController() { }
 
-        public DBController(MongoClient db)
+        public DBController(MongoClient db, string uuid)
         {
             Client = db;
+            UUID = uuid;
         }
 
         //List every DB
