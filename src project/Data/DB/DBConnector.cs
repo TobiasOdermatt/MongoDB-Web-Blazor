@@ -10,7 +10,6 @@ namespace BlazorServerMyMongo.Data.DB
         private static string? _dbRules;
         private static string? _customString;
         private static bool _useAuthorization = true;
-        static string? UUID;
 
         //Loads the connection values from config.json
         public DBConnector(IConfiguration config)

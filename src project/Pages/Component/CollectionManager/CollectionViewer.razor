@@ -1,0 +1,66 @@
+﻿@page "/CollectionViewer/{dbname}/{collectionname}"
+@using Data.DB;
+@using MongoDB.Bson;
+@using MongoDB.Bson.IO;
+@using MongoDB.Bson.Serialization;
+@using MongoDB.Driver
+
+@inject DBController DBController;
+<h2>View Collection: @collectionname</h2>
+<div class="row bottom-div">
+    @if (CollectionList == null)
+    {
+        <p class="text-danger">Not authorized on @collectionname</p>
+    }
+    else{
+        @foreach (var Collection in CollectionList)
+        {
+            @using BlazorServerMyMongo.Pages.Component.CollectionManager
+            <ViewCollection Collection="@Collection" />
+        }
+    }
+
+
+</div>
+@code {
+    [Parameter]
+    public string? dbname { get; set; }
+    [Parameter]
+    public string? collectionname { get; set; }
+    
+    List<string>? CollectionList;
+
+    private IMongoCollection<BsonDocument>? ListCollection()
+    {
+        if (dbname is null || collectionname is null)
+            return null;
+
+        return DBController.GetCollection(dbname, collectionname);
+    }
+
+    protected override Task OnInitializedAsync()
+    {
+        IMongoCollection<BsonDocument>? CollectionData = ListCollection();
+        CollectionList = GenerateOutput(CollectionData);
+        return base.OnInitializedAsync();
+    }
+
+    private List<string> GenerateOutput(IMongoCollection<BsonDocument>? Collection)
+    {
+    List<string> Output = new List<string>();
+    var cursor = Collection.Find(new BsonDocument()).ToCursor();
+        foreach (var document in cursor.ToEnumerable())
+        {
+            using (var stringWriter = new StringWriter())
+            using (var jsonWriter = new JsonWriter(stringWriter))
+            {
+                var context = BsonSerializationContext.CreateRoot(jsonWriter);
+                Collection.DocumentSerializer.Serialize(context, document);
+                var line = stringWriter.ToString();
+                Output.Add(line);
+            }
+        }
+        return Output;
+    }
+    
+ }

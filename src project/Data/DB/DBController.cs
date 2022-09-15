@@ -54,8 +54,20 @@ namespace BlazorServerMyMongo.Data.DB
             }
         }
 
-        //Get a specific collection from a DB based on the collectionName return JOBject
-
+        //Get a specific collection from a DB based on the collectionName return IMongoCollection<BsonDocument>
+        public IMongoCollection<BsonDocument>? GetCollection(string dbName, string collectionName)
+        {
+            if (Client is null)
+                return null;
+            try
+            {
+                return Client.GetDatabase(dbName).GetCollection<BsonDocument>(collectionName);
+            }
+            catch
+            {
+                return null;
+            }
+        }
 
         //Delete DB by name
         public bool DeleteDB(string dbName)
