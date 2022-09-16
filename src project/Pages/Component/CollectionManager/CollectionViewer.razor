@@ -10,7 +10,7 @@
 <div class="row bottom-div">
     @if (CollectionList == null)
     {
-        <p class="text-danger">Not authorized on @collectionname</p>
+        <p class="text-danger">Failed to read collection @collectionname</p>
     }
     else{
         @foreach (var Collection in CollectionList)
@@ -27,7 +27,7 @@
     public string? dbname { get; set; }
     [Parameter]
     public string? collectionname { get; set; }
-    
+
     List<string>? CollectionList;
 
     private IMongoCollection<BsonDocument>? ListCollection()
@@ -45,22 +45,29 @@
         return base.OnInitializedAsync();
     }
 
-    private List<string> GenerateOutput(IMongoCollection<BsonDocument>? Collection)
+    private List<string>? GenerateOutput(IMongoCollection<BsonDocument>? Collection)
     {
-    List<string> Output = new List<string>();
-    var cursor = Collection.Find(new BsonDocument()).ToCursor();
-        foreach (var document in cursor.ToEnumerable())
+        List<string> Output = new List<string>();
+        try
         {
-            using (var stringWriter = new StringWriter())
-            using (var jsonWriter = new JsonWriter(stringWriter))
+            if (Collection is null)
+                return null;
+
+            var Filter = new BsonDocument();
+            var Cursor = Collection.Find(Filter).ToCursor();
+            while (Cursor.MoveNext())
             {
-                var context = BsonSerializationContext.CreateRoot(jsonWriter);
-                Collection.DocumentSerializer.Serialize(context, document);
-                var line = stringWriter.ToString();
-                Output.Add(line);
+                foreach (var Document in Cursor.Current)
+                {
+                    Output.Add(Document.ToJson());
+                }
             }
+            return Output;
         }
-        return Output;
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+            return null;
+        }
     }
-    
  }
