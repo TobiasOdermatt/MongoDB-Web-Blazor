@@ -30,7 +30,7 @@
 
     List<string>? CollectionList;
 
-    private IMongoCollection<BsonDocument>? ListCollection()
+    private List<string>? ListCollection()
     {
         if (dbname is null || collectionname is null)
             return null;
@@ -40,34 +40,7 @@
 
     protected override Task OnInitializedAsync()
     {
-        IMongoCollection<BsonDocument>? CollectionData = ListCollection();
-        CollectionList = GenerateOutput(CollectionData);
+        CollectionList = ListCollection();
         return base.OnInitializedAsync();
-    }
-
-    private List<string>? GenerateOutput(IMongoCollection<BsonDocument>? Collection)
-    {
-        List<string> Output = new List<string>();
-        try
-        {
-            if (Collection is null)
-                return null;
-
-            var Filter = new BsonDocument();
-            var Cursor = Collection.Find(Filter).ToCursor();
-            while (Cursor.MoveNext())
-            {
-                foreach (var Document in Cursor.Current)
-                {
-                    Output.Add(Document.ToJson());
-                }
-            }
-            return Output;
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e.Message);
-            return null;
-        }
     }
  }
