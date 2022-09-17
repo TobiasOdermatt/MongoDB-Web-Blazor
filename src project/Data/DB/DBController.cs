@@ -1,4 +1,5 @@
-﻿using MongoDB.Bson;
+﻿using BlazorServerMyMongo.Data.Helpers;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace BlazorServerMyMongo.Data.DB
@@ -7,12 +8,17 @@ namespace BlazorServerMyMongo.Data.DB
     {
         public static MongoClient? Client;
         public static string? UUID;
+        public static string? Username;
+        public static string? IPofRequest;
+
         public DBController() { }
 
-        public DBController(MongoClient db, string uuid)
+        public DBController(MongoClient db, string uuid, string username, string ipOfRequest)
         {
             Client = db;
             UUID = uuid;
+            Username = username;
+            IPofRequest = ipOfRequest;
         }
 
         //List every DB
@@ -20,8 +26,16 @@ namespace BlazorServerMyMongo.Data.DB
         {
             if (Client is null)
                 return null;
-            var DBList = Client.ListDatabases();
-            return DBList.ToList();
+            List<BsonDocument>? DBList = new();
+            try
+            {
+                DBList = Client.ListDatabases().ToList();
+            }
+            catch (Exception e)
+            {
+                LogManager log = new("Error", "User: " + Username + " has failed to load Dashboard ", e);
+            }
+            return DBList;
         }
 
         //List all collections from a DB catch if not authorized
@@ -29,14 +43,17 @@ namespace BlazorServerMyMongo.Data.DB
         {
             if (Client is null)
                 return null;
+            List<BsonDocument>? result;
             try
             {
-                return Client.GetDatabase(dbName).ListCollections().ToList();
+                result = Client.GetDatabase(dbName).ListCollections().ToList();
             }
-            catch
+            catch (Exception e)
             {
-                return null;
+                LogManager log = new("Error", "User: " + Username + " has failed to load the All Collections from DB: " + dbName, e);
+                result = null;
             }
+            return result;
         }
 
         //Get number of collections of a DB if not authorized return -1 
@@ -55,18 +72,34 @@ namespace BlazorServerMyMongo.Data.DB
         }
 
         //Get a specific collection from a DB based on the collectionName return IMongoCollection<BsonDocument>
-        public IMongoCollection<BsonDocument>? GetCollection(string dbName, string collectionName)
+        public List<string>? GetCollection(string dbName, string collectionName)
         {
             if (Client is null)
                 return null;
+            List<string> result = new();
             try
             {
-                return Client.GetDatabase(dbName).GetCollection<BsonDocument>(collectionName);
+                var Collection = Client.GetDatabase(dbName).GetCollection<BsonDocument>(collectionName);
+
+                if (Collection is null)
+                    return null;
+
+                var Filter = new BsonDocument();
+                var Cursor = Collection.Find(Filter).ToCursor();
+                while (Cursor.MoveNext())
+                {
+                    foreach (var Document in Cursor.Current)
+                    {
+                        result.Add(Document.ToJson());
+                    }
+                }
+                return result;
             }
-            catch
+            catch (Exception e)
             {
-                return null;
+                LogManager log = new("Error", "User: " + Username + " has failed to load the Collection: " + collectionName + " from DB: " + dbName, e);
             }
+            return null;
         }
 
         //Delete DB by name
@@ -74,15 +107,20 @@ namespace BlazorServerMyMongo.Data.DB
         {
             if (Client is null)
                 return false;
+            bool result;
             try
             {
                 Client.DropDatabase(dbName);
-                return true;
+                LogManager log = new("Info", "User: " + Username + " has deleted the DB: " + dbName);
+                result = true;
             }
-            catch
+            catch (Exception e)
             {
-                return false;
+                LogManager log = new("Error", "User: " + Username + " has failed to delete the DB: " + dbName + " " + e);
+                result = false;
             }
+            return result;
+
         }
 
         //Create a Collection by name, and dbName
@@ -90,32 +128,40 @@ namespace BlazorServerMyMongo.Data.DB
         {
             if (Client is null)
                 return false;
+            bool result = false;
             try
             {
                 Client.GetDatabase(dbName).CreateCollection(collectionName);
-                return true;
+                LogManager log = new("Info", "User: " + Username + " has created the Collection: " + collectionName + " in DB: " + dbName);
+                result = true;
             }
-            catch
+            catch (Exception e)
             {
-                return false;
+                LogManager log = new("Error", "User: " + Username + " has failed by creating Collection " + collectionName + " in DB: " + dbName, e);
+                result = false;
             }
+            return result;
         }
 
         //Delete Collection by name, and dbName
         public bool DeleteCollection(string dbName, string collectionName)
         {
+            bool result = false;
             if (Client is null)
-                return false;
+                result = false;
             try
             {
                 var db = Client.GetDatabase(dbName);
                 db.DropCollection(collectionName);
-                return true;
+                LogManager log = new("Info", "User: " + Username + " has deleted the Collection: " + collectionName + " in DB: " + dbName);
+                result = true;
             }
-            catch
+            catch (Exception e)
             {
-                return false;
+                LogManager log = new("Error", "User: " + Username + " has failed by deleting Collection" + collectionName + " in DB: " + dbName, e);
+                result = false;
             }
+            return result;
         }
 
         //Upload JSON to the collection by, dbName, collectionName, and the JSON

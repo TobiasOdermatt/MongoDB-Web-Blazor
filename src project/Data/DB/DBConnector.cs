@@ -1,4 +1,5 @@
-﻿using MongoDB.Driver;
+﻿using BlazorServerMyMongo.Data.Helpers;
+using MongoDB.Driver;
 
 namespace BlazorServerMyMongo.Data.DB
 {
@@ -24,32 +25,28 @@ namespace BlazorServerMyMongo.Data.DB
             _customString = config["CustomConnectionString"];
         }
 
-        public DBConnector(string username, string password, string UUID)
+        public DBConnector(string username, string password, string uuid, string IPOfRequest)
         {
-            Client = DbConnect(username, password, UUID);
+            Client = DbConnect(username, password, uuid, IPOfRequest);
         }
 
-        public MongoClient? DbConnect(string username, string password, string UUID)
+        public MongoClient? DbConnect(string username, string password, string uuid, string ipOfRequest)
         {
             string ConnectionString = getConnectionString(username, password);
             DBController controller = new();
-            if (DBController.UUID == UUID)
+            if (DBController.UUID == uuid && DBController.IPofRequest == ipOfRequest)
                 return DBController.Client;
 
             try
             {
                 MongoClient mongoClient = new(ConnectionString);
-
-                // var testDB = mongoClient.GetDatabase("test");
-                // var cmd = new BsonDocument("count", "foo");
-                // var result = testDB.RunCommand<BsonDocument>(cmd);
                 var test = mongoClient.ListDatabases();
-                DBController dBController = new(mongoClient, UUID);
+                DBController dBController = new(mongoClient, uuid, username, ipOfRequest);
                 return mongoClient;
             }
             catch (Exception e)
             {
-                Console.WriteLine("Exception: Connection to DB failed \n" + e);
+                LogManager log = new("Error", "User: " + username + " has failed to connect to the DB ", e);
                 return null;
             }
         }

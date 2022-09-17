@@ -1,4 +1,5 @@
 ﻿using BlazorServerMyMongo.Data.DB;
+using BlazorServerMyMongo.Data.Helpers;
 using BlazorServerMyMongo.Data.OTP;
 using BlazorServerMyMongo.Objects;
 using Microsoft.AspNetCore.Mvc;
@@ -19,6 +20,9 @@ namespace BlazorServerMyMongo.Controllers
         //If data is correct UUID will be returned
         public IActionResult CreateOTP(ConnectRequestObject dataJSON)
         {
+            if (Request.HttpContext.Connection.RemoteIpAddress == null) { return NoContent(); }
+            string ipOfRequest = Request.HttpContext.Connection.RemoteIpAddress.ToString();
+
             OTPManagement otpManagement = new();
             string? decryptedData = otpManagement.DecryptUserData(dataJSON.AuthCookieKey, dataJSON.RandData);
             if (decryptedData is null)
@@ -26,7 +30,7 @@ namespace BlazorServerMyMongo.Controllers
 
             (string username, string password) = otpManagement.getUserData(decryptedData);
             var uuid = Guid.NewGuid().ToString();
-            DBConnector connector = new(username, password, uuid);
+            DBConnector connector = new(username, password, uuid, Request.HttpContext.Connection.RemoteIpAddress.ToString());
 
             //If connection is successful, UUID will be returned
             if (connector.Client != null)
@@ -37,9 +41,8 @@ namespace BlazorServerMyMongo.Controllers
                 OTPFileObject newFile = new(localDate, dataJSON.RandData);
                 OTPFileManagement fileManger = new();
                 fileManger.WriteOTPFile(uuid, newFile);
-
                 fileManger.CleanUpOTPFiles();
-
+                LogManager log = new("Info", "OTP file created for user: " + username + " with UUID " + uuid + " IP: " + ipOfRequest);
                 return new JsonResult(uuidObject);
             }
             return NoContent();

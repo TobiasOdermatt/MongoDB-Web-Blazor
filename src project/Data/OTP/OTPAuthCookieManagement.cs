@@ -12,6 +12,7 @@ namespace BlazorServerMyMongo.Data.OTP
             Context = httpContext;
         }
 
+        //Checks if the AuthCookie is valid
         public bool IsCookieValid()
         {
             (string? uuid, string? authOTP) = ReadOTPCookie();
@@ -32,7 +33,7 @@ namespace BlazorServerMyMongo.Data.OTP
                 return false;
 
             (string username, string password) = otpManager.getUserData(decryptedData);
-            DBConnector connector = new(username, password, uuid);
+            DBConnector connector = new(username, password, uuid, Context.Request.HttpContext.Connection.RemoteIpAddress.ToString());
             return connector.Client != null;
         }
 
