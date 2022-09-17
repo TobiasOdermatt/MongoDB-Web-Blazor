@@ -1,4 +1,5 @@
-﻿using BlazorServerMyMongo.Objects;
+﻿using BlazorServerMyMongo.Data.Helpers;
+using BlazorServerMyMongo.Objects;
 using System.Text.Json;
 
 namespace BlazorServerMyMongo.Data.OTP
@@ -41,6 +42,7 @@ namespace BlazorServerMyMongo.Data.OTP
             string path = OTPpath + uuid + ".txt";
             if (File.Exists(path))
                 File.Delete(path);
+            LogManager log = new("Info", "Deleted OTP file Logout: " + uuid);
         }
 
         public void CleanUpOTPFiles()
@@ -49,7 +51,7 @@ namespace BlazorServerMyMongo.Data.OTP
                 return;
 
             UpdateCleanUpLog();
-
+            LogManager log = new("Info", "Cleaned up OTP files");
             foreach (string fileName in Directory.GetFiles(OTPpath))
             {
                 string text = File.ReadAllText(fileName);
@@ -59,7 +61,10 @@ namespace BlazorServerMyMongo.Data.OTP
                 OTPFileObject? otpfile = Newtonsoft.Json.JsonConvert.DeserializeObject<OTPFileObject>(text);
                 if (otpfile is not null)
                     if (otpfile.Created.AddDays(DeleteOTPinDays) < DateTime.Now)
+                    {
                         File.Delete(fileName);
+                        log = new("Info", "The OTP file " + fileName + " was deleted because it was older than " + DeleteOTPinDays + " days");
+                    }
             }
         }
 
