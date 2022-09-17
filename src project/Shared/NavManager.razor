@@ -134,7 +134,7 @@
         }
         else
         {
-            Console.WriteLine("UseAuthorization in the config.json is not a valid boolean");
+            LogManager log = new("Error","ConfigManager: UseLogin is not a valid boolean");
         }
     }
 }

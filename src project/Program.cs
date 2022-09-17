@@ -18,6 +18,9 @@ OTPFileManagement OTP = new();
 OTP.CleanUpOTPFiles();
 builder.Services.AddScoped<DBController>();
 builder.Services.AddSingleton<AppData>();
+builder.Services.AddSingleton<LogManager>();
+LogManager log = new("Info", "Server started");
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
