@@ -39,7 +39,10 @@ namespace BlazorServerMyMongo.Data.OTP
             for (int i = 0; i < len; i++)
             {
                 if (bin1[i] == ' ')
-                { res += ' '; continue; }
+                {
+                    res += ' ';
+                    continue; 
+                }
 
                 res += bin1[i] == bin2[i] ? '0' : '1';
             }

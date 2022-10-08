@@ -2,17 +2,17 @@
 {
     public class LogManager
     {
-        string path = $"{Directory.GetCurrentDirectory()}" + @"\Logs\" + DateTime.Now.ToString("yyyy") + @"\" + DateTime.Now.ToString("MM") + @"\";
+        readonly string path = $"{Directory.GetCurrentDirectory()}\\Logs\\{DateTime.Now.ToString("yyyy")}\\{DateTime.Now.ToString("MM")}\\";
 
 
-        public LogManager(string type, string message)
+        public LogManager(LogType type, string message)
         {
             CreateDirectory();
             CreateLogFile();
             UpdateLogFile(type, message);
         }
 
-        public LogManager(string type, string message, Exception exception)
+        public LogManager(LogType type, string message, Exception exception)
         {
             CreateDirectory();
             CreateLogFile();
@@ -24,6 +24,13 @@
         {
             CreateDirectory();
             CreateLogFile();
+        }
+
+        public enum LogType
+        {
+            Info,
+            Warning,
+            Error
         }
 
         //Create the Exception File for the error
@@ -53,31 +60,37 @@
         }
 
         //Add a new line to the log file
-        public void UpdateLogFile(string type, string line)
+        public void UpdateLogFile(LogType type, string line)
         {
             try
             {
                 StreamWriter file = new(path + "Log.txt", true);
-                file.WriteLine(DateTime.Now.ToString("dd") + " - " + DateTime.Now.ToString("HH:mm:ss ") + "[" + type + "]" + ": " + line);
-                Console.WriteLine(line);
+                string logline = DateTime.Now.ToString("dd") + " - " + DateTime.Now.ToString("HH:mm:ss ") + "[" + type.ToString() + "]" + ": " + line;
+                file.WriteLine(logline);
+                Console.WriteLine(logline);
                 file.Flush();
                 file.Close();
             }
-            catch (Exception) { }
+            catch (Exception e)
+            {
+                Console.WriteLine($"[LogManager][UpdateLogFile] Error: {e.Message}");
+            }
         }
 
         //Create Directoy if the Dir not exists.
-        public void CreateDirectory()
+        private void CreateDirectory()
         {
             try
             {
                 DirectoryInfo dir = new(path);
+
                 if (!dir.Exists)
-                {
                     dir.Create();
-                }
             }
-            catch { }
+            catch (Exception e)
+            {
+                Console.WriteLine($"[LogManager][CreateDirectory] Error: {e.Message}");
+            }
         }
     }
 }

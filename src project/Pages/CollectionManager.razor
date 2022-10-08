@@ -1,4 +1,7 @@
 ﻿@page "/CollectionManager/{dbname}"
+@using BlazorServerMyMongo.Data.DB;
+@using BlazorServerMyMongo.Pages.Component.CollectionManager
+@using Data.DB;
 @inject DBController DBController;
 <h2>List of all collections</h2>
 <div class="row bottom-div">
@@ -14,7 +17,6 @@
     else{
         @foreach (var Collection in CollectionList)
         {
-            @using BlazorServerMyMongo.Pages.Component.CollectionManager
             <ShowCollectionCard CollectionObject="@Collection" DBName="@DBName" />
         }
     }
@@ -23,8 +25,7 @@
 @code {
     [Parameter]
     public string? DBName { get; set; }
-
-   @using Data.DB;
+    
     private List<MongoDB.Bson.BsonDocument>? ListAllCollections()
     {
         if (DBName is null)
