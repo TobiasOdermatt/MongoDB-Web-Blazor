@@ -5,17 +5,28 @@
         readonly string path = $"{Directory.GetCurrentDirectory()}\\Logs\\{DateTime.Now.ToString("yyyy")}\\{DateTime.Now.ToString("MM")}\\";
 
 
+        /// <summary>
+        /// Write a new log
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="message"></param>
         public LogManager(LogType type, string message)
         {
             CreateDirectory();
-            CreateLogFile();
+            CreateLogFile(type);
             UpdateLogFile(type, message);
         }
 
+        /// <summary>
+        /// Create a new Log with Exception
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="message"></param>
+        /// <param name="exception"></param>
         public LogManager(LogType type, string message, Exception exception)
         {
             CreateDirectory();
-            CreateLogFile();
+            CreateLogFile(type);
             UpdateLogFile(type, message);
             CreateExceptionLogFile(message, exception);
         }
@@ -23,7 +34,6 @@
         public LogManager()
         {
             CreateDirectory();
-            CreateLogFile();
         }
 
         public enum LogType
@@ -46,13 +56,13 @@
         }
 
         //Create Start of Log File
-        public void CreateLogFile()
+        public void CreateLogFile(LogType type)
         {
-            if (!File.Exists(path + "Log.txt"))
+            if (!File.Exists(path + type + ".txt"))
             {
-                StreamWriter CreateFile = new(path + "Log.txt", false);
+                StreamWriter CreateFile = new(path + type + ".txt", false);
                 CreateFile.WriteLine("===============================");
-                CreateFile.WriteLine("Web MongoDB Log");
+                CreateFile.WriteLine("Web MongoDB Log " + type);
                 CreateFile.WriteLine("===============================");
                 CreateFile.Flush();
                 CreateFile.Close();
@@ -64,7 +74,7 @@
         {
             try
             {
-                StreamWriter file = new(path + "Log.txt", true);
+                StreamWriter file = new(path + type + ".txt", true);
                 string logline = DateTime.Now.ToString("dd") + " - " + DateTime.Now.ToString("HH:mm:ss ") + "[" + type.ToString() + "]" + ": " + line;
                 file.WriteLine(logline);
                 Console.WriteLine(logline);
