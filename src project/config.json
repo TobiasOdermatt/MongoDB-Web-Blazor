@@ -1,8 +1,14 @@
 ﻿{
-  "UseLogin": "true",
-  "DBHost": "37.120.165.125",
+  "FirstStart": "true",
+  "LastStart": "2019-01-01 00:00:00",
+  
+  "UseAuthorization": "true",
+  "DBHost": "localhost",
   "DBPort": "27017",
   "DBRule": "?authSource=admin",
 
-  "CustomConnectionString": ""
+  "CustomConnectionString": "",
+  "WhitelistIP": "*",
+  "AdminUsername": "Admin",
+  "EnableLogPage": "true"
 }
