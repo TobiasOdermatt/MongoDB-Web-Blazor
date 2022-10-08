@@ -1,6 +1,7 @@
 using BlazorServerMyMongo.Data.DB;
 using BlazorServerMyMongo.Data.Helpers;
 using BlazorServerMyMongo.Data.OTP;
+using static BlazorServerMyMongo.Data.Helpers.LogManager;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,7 +12,6 @@ builder.Services.AddHttpContextAccessor();
 
 IConfiguration config = new ConfigurationBuilder()
                     .AddJsonFile("config.json", optional: false, reloadOnChange: false).Build();
-
 ConfigManager configManager = new(config);
 builder.Services.AddSingleton<ConfigManager>(configManager);
 OTPFileManagement OTP = new();
@@ -19,7 +19,7 @@ OTP.CleanUpOTPFiles();
 builder.Services.AddScoped<DBController>();
 builder.Services.AddSingleton<AppData>();
 builder.Services.AddSingleton<LogManager>();
-LogManager log = new("Info", "Server started");
+LogManager log = new(LogType.Info, "Server started");
 
 var app = builder.Build();
 

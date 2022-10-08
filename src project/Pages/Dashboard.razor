@@ -3,6 +3,7 @@
 @inject DBController DBController;
 
 @using BlazorServerMyMongo.Pages.Component.Dashboard;
+@using BlazorServerMyMongo.Data.DB
 <PageTitle>Dashboard</PageTitle>
 @code {
     private BlazorServerMyMongo.Pages.Component.Dashboard.CreateDBModal? CreateDBModal { get; set; }
@@ -31,7 +32,6 @@
     }
 </div>
 @code{
-    @using Data.DB;
     private List<MongoDB.Bson.BsonDocument>? ListAllDBs()
     {
         return DBController.ListAllDatabases();
