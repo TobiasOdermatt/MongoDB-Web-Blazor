@@ -94,8 +94,9 @@
     @inject NavigationManager NavigationManager;
     @inject ConfigManager ConfigManager;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
+        base.OnInitialized();
         LoadConfig();
         if(UseAuthorization is false)
         {
@@ -118,8 +119,6 @@
         Authenticated = false;
         if (NavigationManager.Uri != NavigationManager.BaseUri + "Connect")
             NavigationManager.NavigateTo("/Connect");
-
-        await base.OnInitializedAsync();
     }
 
     private void LoadConfig()

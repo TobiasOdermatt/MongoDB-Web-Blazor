@@ -1,1 +1,91 @@
 ﻿@page "/Access_log"
+@using BlazorServerMyMongo.Data.Helpers
+@inject LogManager logManager;
+<h1>Activity Protocol</h1>
+<br />
+
+<div class="row">
+    <button @onclick="() => ChangeLogType(LogType.All)" class="infoBox col-2 page ">All @CountOfAll</button>
+    <button @onclick="() => ChangeLogType(LogType.Error)" class="infoBox col-2 page">Error @CountOfError</button>
+    <button @onclick="() => ChangeLogType(LogType.Warning)" class="infoBox col-2 page">Warning @CountOfWarning</button>
+    <button @onclick="() => ChangeLogType(LogType.Info)" class="infoBox col-2 page">Information @CountOfInfo</button>
+    <select @onchange="ChangeDate" class="col-3 page infoBox">
+    @foreach (DateTime date in AvailableLogDates)
+    {
+        bool newlog = date.Date.Year == DateTime.Now.Year & date.Date.Month == DateTime.Now.Month;
+        <option value="@date" selected="@newlog.ToString()" class="page">@date.Year/@date.Month</option>
+    }
+</select>
+<br />
+
+    <table class="table page">
+        <thead>
+            <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Type</th>
+                <th scope="col">Message</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var log in logManager.ReadLogFiles(CurrentType.ToString(), CurrentDate))
+            {
+                <tr>
+                    <td>@log.Created</td>
+                    <td>@log.Type</td>
+                    <td>@log.Message</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code{
+    public int CountOfInfo;
+    public int CountOfWarning;
+    public int CountOfError;
+    public int CountOfAll;
+
+    public DateTime CurrentDate { get; set; }
+
+    public List<DateTime> AvailableLogDates { get; set; }
+
+    public LogType CurrentType { get; set; } = LogType.All;
+
+    public enum LogType
+    {
+        All,
+        Info,
+        Warning,
+        Error
+    }
+    
+    void ChangeLogType(LogType SelectedType)
+    {
+        CurrentType = SelectedType;
+        Refresh();
+    }
+
+    void ChangeDate(ChangeEventArgs e)
+    {
+        CurrentDate = DateTime.Parse(e.Value.ToString());
+        Refresh();
+    }
+    
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        AvailableLogDates = logManager.GetAvailableLogDates();
+        if (CurrentDate == DateTime.MinValue)
+        {
+            CurrentDate = DateTime.Now;
+        }
+        Refresh();
+    }
+    
+    void Refresh()
+    {
+        (CountOfInfo, CountOfWarning, CountOfError) = logManager.CountLog(CurrentDate);
+        CountOfAll = CountOfError + CountOfInfo + CountOfWarning;
+        StateHasChanged();
+    }
+}
