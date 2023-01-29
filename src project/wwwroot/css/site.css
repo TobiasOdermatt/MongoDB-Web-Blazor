@@ -180,3 +180,11 @@ a, .btn-link {
     float: right;
     color: white;
 }
+
+.infoBox {
+    border-color: var(--third-color);
+}
+
+.active {
+    border-color: #ff1493;
+}
