@@ -9,7 +9,7 @@
 
 <div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
     <nav class="flex-column">
-        @if (Authenticated)
+        @if (Authenticated || (UseAuthorization == false))
         {
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="Dashboard">
@@ -32,7 +32,7 @@
             </div>
             
             <div class="nav-item px-3">
-                <NavLink class="nav-link" href="access_log">
+                <NavLink class="nav-link" href="Access_log">
                     <img src="../icons/security.svg" class="svgicon blacktowhite" />  Access Log
                 </NavLink>
             </div>
@@ -72,6 +72,10 @@
     }
 </style>
 @using BlazorServerMyMongo.Data.Helpers
+@using BlazorServerMyMongo.Data.OTP
+@using Data.OTP;
+@using static BlazorServerMyMongo.Data.Helpers.LogManager;
+
 @code {
     private bool collapseNavMenu = true;
 
@@ -86,9 +90,9 @@
     IHttpContextAccessor? HttpContextAccessor { get; set; }
     public bool UseAuthorization { get; set; } = true;
     public bool Authenticated { get; set; } = false;
+    public bool UseLogPage { get; set; } = false;
     @inject NavigationManager NavigationManager;
     @inject ConfigManager ConfigManager;
-    @using Data.OTP;
 
     protected override void OnInitialized()
     {
@@ -119,21 +123,21 @@
 
     private void LoadConfig()
     {
-        LoadUseAuthorization(ConfigManager.ReadKey("UseLogin"));
+        UseAuthorization = ReadBoolFromConfig("UseAuthorization") ?? true;
+        UseLogPage = ReadBoolFromConfig("EnableLogPage") ?? false;
     }
 
-    private void LoadUseAuthorization(string? AuthBoolString)
+    private bool? ReadBoolFromConfig(string key)
     {
-        if (AuthBoolString is null)
-            return;
-        
-        if (Boolean.TryParse(AuthBoolString, out bool AuthBool))
+        string? value = ConfigManager.ReadKey(key);
+        if (Boolean.TryParse(value, out bool boolOutput))
         {
-            UseAuthorization = AuthBool;
+            return boolOutput;
         }
         else
         {
-            LogManager log = new("Error","ConfigManager: UseLogin is not a valid boolean");
+            LogManager _ = new(LogManager.LogType.Error, "ConfigManager: " + key + " is not a valid boolean");
+            return null;
         }
     }
 }

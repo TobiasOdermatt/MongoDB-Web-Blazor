@@ -6,41 +6,42 @@
 @using MongoDB.Driver
 
 @inject DBController DBController;
-<h2>View Collection: @collectionname</h2>
+<h2>View Collection: @Collectionname</h2>
 <div class="row bottom-div">
-    @if (CollectionList == null)
+    
+    @if (collectionList == null)
     {
-        <p class="text-danger">Failed to read collection @collectionname</p>
+        <p class="text-danger">Failed to read collection @Collectionname</p>
     }
-    else{
-        @foreach (var Collection in CollectionList)
+    else
+    {
+        @foreach (var collection in collectionList)
         {
             @using BlazorServerMyMongo.Pages.Component.CollectionManager
-            <ViewCollection Collection="@Collection" />
+            <ViewCollection Collection="@collection" />
         }
     }
-
-
+    
 </div>
 @code {
     [Parameter]
-    public string? dbname { get; set; }
+    public string? DBname { get; set; }
     [Parameter]
-    public string? collectionname { get; set; }
+    public string? Collectionname { get; set; }
 
-    List<string>? CollectionList;
+    List<string>? collectionList;
 
     private List<string>? ListCollection()
     {
-        if (dbname is null || collectionname is null)
+        if (DBname is null || Collectionname is null)
             return null;
 
-        return DBController.GetCollection(dbname, collectionname);
+        return DBController.GetCollection(DBname, Collectionname);
     }
 
     protected override Task OnInitializedAsync()
     {
-        CollectionList = ListCollection();
+        collectionList = ListCollection();
         return base.OnInitializedAsync();
     }
  }

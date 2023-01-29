@@ -9,17 +9,28 @@ namespace BlazorServerMyMongo.Data.Helpers
 
 
 
-        public LogManager(string type, string message)
+        /// <summary>
+        /// Write a new log
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="message"></param>
+        public LogManager(LogType type, string message)
         {
             CreateDirectory();
-            CreateLogFile();
+            CreateLogFile(type);
             UpdateLogFile(type, message);
         }
 
-        public LogManager(string type, string message, Exception exception)
+        /// <summary>
+        /// Create a new Log with Exception
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="message"></param>
+        /// <param name="exception"></param>
+        public LogManager(LogType type, string message, Exception exception)
         {
             CreateDirectory();
-            CreateLogFile();
+            CreateLogFile(type);
             UpdateLogFile(type, message);
             CreateExceptionLogFile(message, exception);
         }
@@ -27,7 +38,13 @@ namespace BlazorServerMyMongo.Data.Helpers
         public LogManager()
         {
             CreateDirectory();
-            CreateLogFile();
+        }
+
+        public enum LogType
+        {
+            Info,
+            Warning,
+            Error
         }
 
         //Create the Exception File for the error
@@ -43,13 +60,13 @@ namespace BlazorServerMyMongo.Data.Helpers
         }
 
         //Create Start of Log File
-        public void CreateLogFile()
+        public void CreateLogFile(LogType type)
         {
-            if (!File.Exists(path + "Log.txt"))
+            if (!File.Exists(path + type + ".txt"))
             {
-                StreamWriter CreateFile = new(path + "Log.txt", false);
+                StreamWriter CreateFile = new(path + type + ".txt", false);
                 CreateFile.WriteLine("===============================");
-                CreateFile.WriteLine("Web MongoDB Log");
+                CreateFile.WriteLine("Web MongoDB Log " + type);
                 CreateFile.WriteLine("===============================");
                 CreateFile.Flush();
                 CreateFile.Close();
@@ -57,31 +74,37 @@ namespace BlazorServerMyMongo.Data.Helpers
         }
 
         //Add a new line to the log file
-        public void UpdateLogFile(string type, string line)
+        public void UpdateLogFile(LogType type, string line)
         {
             try
             {
-                StreamWriter file = new(path + "Log.txt", true);
-                file.WriteLine(DateTime.Now.ToString("dd") + " - " + DateTime.Now.ToString("HH:mm:ss ") + "[" + type + "]" + ": " + line);
-                Console.WriteLine(line);
+                StreamWriter file = new(path + type + ".txt", true);
+                string logline = DateTime.Now.ToString("dd") + " - " + DateTime.Now.ToString("HH:mm:ss ") + "[" + type.ToString() + "]" + ": " + line;
+                file.WriteLine(logline);
+                Console.WriteLine(logline);
                 file.Flush();
                 file.Close();
             }
-            catch (Exception) { }
+            catch (Exception e)
+            {
+                Console.WriteLine($"[LogManager][UpdateLogFile] Error: {e.Message}");
+            }
         }
 
         //Create Directoy if the Dir not exists.
-        public void CreateDirectory()
+        private void CreateDirectory()
         {
             try
             {
                 DirectoryInfo dir = new(path);
+
                 if (!dir.Exists)
-                {
                     dir.Create();
-                }
             }
-            catch { }
+            catch (Exception e)
+            {
+                Console.WriteLine($"[LogManager][CreateDirectory] Error: {e.Message}");
+            }
         }
 
         public (int, int, int) CountLog(DateTime date)

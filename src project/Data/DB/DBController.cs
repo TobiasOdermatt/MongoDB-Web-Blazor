@@ -1,6 +1,7 @@
 ﻿using BlazorServerMyMongo.Data.Helpers;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using static BlazorServerMyMongo.Data.Helpers.LogManager;
 
 namespace BlazorServerMyMongo.Data.DB
 {
@@ -21,7 +22,10 @@ namespace BlazorServerMyMongo.Data.DB
             IPofRequest = ipOfRequest;
         }
 
-        //List every DB
+        /// <summary>
+        /// List every database from mongo
+        /// </summary>
+        /// <returns>Returns List<BsonDocument></returns>
         public List<BsonDocument>? ListAllDatabases()
         {
             if (Client is null)
@@ -33,12 +37,16 @@ namespace BlazorServerMyMongo.Data.DB
             }
             catch (Exception e)
             {
-                LogManager log = new("Error", "User: " + Username + " has failed to load Dashboard ", e);
+                LogManager _ = new(LogType.Error, "User: " + Username + " has failed to load Dashboard ", e);
             }
             return DBList;
         }
 
-        //List all collections from a DB catch if not authorized
+        /// <summary>
+        /// List every Collection from specific database
+        /// </summary>
+        /// <param name="dbName">Database Name</param>
+        /// <returns>Returns List<BsonDocument></returns>
         public List<BsonDocument>? ListAllCollectionsfromDB(string dbName)
         {
             if (Client is null)
@@ -50,13 +58,17 @@ namespace BlazorServerMyMongo.Data.DB
             }
             catch (Exception e)
             {
-                LogManager log = new("Error", "User: " + Username + " has failed to load the All Collections from DB: " + dbName, e);
+                LogManager _ = new(LogType.Error, "User: " + Username + " has failed to load the All Collections from DB: " + dbName, e);
                 result = null;
             }
             return result;
         }
 
-        //Get number of collections of a DB if not authorized return -1 
+        /// <summary>
+        /// Get the number of Collections
+        /// </summary>
+        /// <param name="dbName">Database Name</param>
+        /// <returns>If the result is -1, user is not authenticated</returns>
         public int GetNumberOfCollections(string dbName)
         {
             if (Client is null)
@@ -71,7 +83,12 @@ namespace BlazorServerMyMongo.Data.DB
             }
         }
 
-        //Get a specific collection from a DB based on the collectionName return IMongoCollection<BsonDocument>
+        /// <summary>
+        /// Get a specific Collection from a Database
+        /// </summary>
+        /// <param name="dbName">Database Name</param>
+        /// <param name="collectionName">Collection Name</param>
+        /// <returns>Returns List<String>?</returns>
         public List<string>? GetCollection(string dbName, string collectionName)
         {
             if (Client is null)
@@ -97,12 +114,16 @@ namespace BlazorServerMyMongo.Data.DB
             }
             catch (Exception e)
             {
-                LogManager log = new("Error", "User: " + Username + " has failed to load the Collection: " + collectionName + " from DB: " + dbName, e);
+                LogManager _ = new(LogType.Error, "User: " + Username + " has failed to load the Collection: " + collectionName + " from DB: " + dbName, e);
             }
             return null;
         }
 
-        //Delete DB by name
+        /// <summary>
+        /// Delete a specific Collection from a Database
+        /// </summary>
+        /// <param name="dbName">Database Name</param>
+        /// <returns>bool will be returned, if success</returns>
         public bool DeleteDB(string dbName)
         {
             if (Client is null)
@@ -111,19 +132,24 @@ namespace BlazorServerMyMongo.Data.DB
             try
             {
                 Client.DropDatabase(dbName);
-                LogManager log = new("Info", "User: " + Username + " has deleted the DB: " + dbName);
+                LogManager _ = new(LogType.Info, "User: " + Username + " has deleted the DB: " + dbName);
                 result = true;
             }
             catch (Exception e)
             {
-                LogManager log = new("Error", "User: " + Username + " has failed to delete the DB: " + dbName + " " + e);
+                LogManager _ = new(LogType.Error, "User: " + Username + " has failed to delete the DB: " + dbName + " " + e);
                 result = false;
             }
             return result;
 
         }
 
-        //Create a Collection by name, and dbName
+        /// <summary>
+        /// Create a new Collection
+        /// </summary>
+        /// <param name="dbName">Database Name</param>
+        /// <param name="collectionName">Collection Name</param>
+        /// <returns>bool will be returned, if success</returns>
         public bool CreateCollection(string dbName, string collectionName)
         {
             if (Client is null)
@@ -132,18 +158,23 @@ namespace BlazorServerMyMongo.Data.DB
             try
             {
                 Client.GetDatabase(dbName).CreateCollection(collectionName);
-                LogManager log = new("Info", "User: " + Username + " has created the Collection: " + collectionName + " in DB: " + dbName);
+                LogManager log = new(LogType.Info, "User: " + Username + " has created the Collection: " + collectionName + " in DB: " + dbName);
                 result = true;
             }
             catch (Exception e)
             {
-                LogManager log = new("Error", "User: " + Username + " has failed by creating Collection " + collectionName + " in DB: " + dbName, e);
+                LogManager log = new(LogType.Error, "User: " + Username + " has failed by creating Collection " + collectionName + " in DB: " + dbName, e);
                 result = false;
             }
             return result;
         }
 
-        //Delete Collection by name, and dbName
+        /// <summary>
+        /// Delete a specific Collection
+        /// </summary>
+        /// <param name="dbName">Database Name</param>
+        /// <param name="collectionName">Collection Name</param>
+        /// <returns>bool will be returned, if success</returns>
         public bool DeleteCollection(string dbName, string collectionName)
         {
             bool result = false;
@@ -153,18 +184,17 @@ namespace BlazorServerMyMongo.Data.DB
             {
                 var db = Client.GetDatabase(dbName);
                 db.DropCollection(collectionName);
-                LogManager log = new("Info", "User: " + Username + " has deleted the Collection: " + collectionName + " in DB: " + dbName);
+                LogManager log = new(LogType.Info, "User: " + Username + " has deleted the Collection: " + collectionName + " in DB: " + dbName);
                 result = true;
             }
             catch (Exception e)
             {
-                LogManager log = new("Error", "User: " + Username + " has failed by deleting Collection" + collectionName + " in DB: " + dbName, e);
+                LogManager log = new(LogType.Error, "User: " + Username + " has failed by deleting Collection" + collectionName + " in DB: " + dbName, e);
                 result = false;
             }
             return result;
         }
 
-        //Upload JSON to the collection by, dbName, collectionName, and the JSON
         public bool UploadJSON(string dbName, string collectionName, string json)
         {
             if (Client is null)

@@ -32,7 +32,7 @@
     private string? newDBName { get; set; }
     private string? newCollectionName { get; set; }
     
-    @inject DBController dbcontroller
+    @inject DBController dbcontroller;
     public Guid Guid = Guid.NewGuid();
     public string ModalDisplay = "none;";
     public string ModalClass = "";
