@@ -46,7 +46,11 @@ namespace BlazorServerMyMongo.Data.DB
             }
             catch (Exception e)
             {
+<<<<<<< Updated upstream
                 LogManager log = new("Error", "User: " + username + " has failed to connect to the DB ", e);
+=======
+                LogManager _ = new(LogManager.LogType.Error, "User; " + username + " has failed to connect to the DB ", e);
+>>>>>>> Stashed changes
                 return null;
             }
         }
