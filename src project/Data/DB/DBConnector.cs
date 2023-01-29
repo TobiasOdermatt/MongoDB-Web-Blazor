@@ -6,10 +6,10 @@ namespace BlazorServerMyMongo.Data.DB
     public class DBConnector
     {
         public MongoClient? Client;
-        private static string? _dbHost;
-        private static string? _dbPort;
-        private static string? _dbRules;
-        private static string? _customString;
+        private static string? dbHost;
+        private static string? dbPort;
+        private static string? dbRules;
+        private static string? customString;
         private static bool _useAuthorization = true;
 
         //Loads the connection values from config.json
@@ -19,10 +19,10 @@ namespace BlazorServerMyMongo.Data.DB
             {
                 _useAuthorization = _useAuthorizationbool;
             }
-            _dbHost = config["DBHost"];
-            _dbPort = config["DBPort"];
-            _dbRules = config["DBRule"];
-            _customString = config["CustomConnectionString"];
+            dbHost = config["DBHost"];
+            dbPort = config["DBPort"];
+            dbRules = config["DBRule"];
+            customString = config["CustomConnectionString"];
         }
 
         public DBConnector(string username, string password, string uuid, string IPOfRequest)
@@ -46,24 +46,20 @@ namespace BlazorServerMyMongo.Data.DB
             }
             catch (Exception e)
             {
-<<<<<<< Updated upstream
-                LogManager log = new("Error", "User: " + username + " has failed to connect to the DB ", e);
-=======
-                LogManager _ = new(LogManager.LogType.Error, "User; " + username + " has failed to connect to the DB ", e);
->>>>>>> Stashed changes
+                LogManager _ = new("Error", "User; " + username + " has failed to connect to the DB ", e);
                 return null;
             }
         }
 
         private string getConnectionString(string username, string password)
         {
-            if (_customString != "" && _customString is not null) { return _customString; }
+            if (customString != "" && customString is not null) { return customString; }
 
             if (_useAuthorization)
             {
-                return $"mongodb://{username}:{password}@{_dbHost}:{_dbPort}/{_dbRules}";
+                return $"mongodb://{username}:{password}@{dbHost}:{dbPort}/{dbRules}";
             }
-            return $"mongodb://{_dbHost}:{_dbPort}";
+            return $"mongodb://{dbHost}:{dbPort}";
         }
     }
 
