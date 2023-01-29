@@ -1,4 +1,4 @@
-# OnlineMongoDBManagement
+# Online MongoDB Dashboard
 OnlineMongoDBManagement is a web-based application that allows users to manage their MongoDB databases online. 
 <br>It will be similar to phpMyAdmin, but instead of dealing with MySQL databases, it works with MongoDB.
 <br>Data is saved using an One Time Pad (OTP) which encrypts the data.
