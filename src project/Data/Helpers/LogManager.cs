@@ -65,9 +65,9 @@ namespace BlazorServerMyMongo.Data.Helpers
             if (!File.Exists(path + type + ".txt"))
             {
                 StreamWriter CreateFile = new(path + type + ".txt", false);
-                CreateFile.WriteLine("===============================");
-                CreateFile.WriteLine("Web MongoDB Log " + type);
-                CreateFile.WriteLine("===============================");
+                CreateFile.WriteLine("#===============================");
+                CreateFile.WriteLine("# Web MongoDB Log " + type);
+                CreateFile.WriteLine("#===============================");
                 CreateFile.Flush();
                 CreateFile.Close();
             }
@@ -79,7 +79,7 @@ namespace BlazorServerMyMongo.Data.Helpers
             try
             {
                 StreamWriter file = new(path + type + ".txt", true);
-                string logline = DateTime.Now.ToString("dd") + " - " + DateTime.Now.ToString("HH:mm:ss ") + "[" + type.ToString() + "]" + ": " + line;
+                string logline = DateTime.Now.ToString("dd") + " | " + DateTime.Now.ToString("HH:mm:ss ") + "|[" + type.ToString() + "]|" + "| " + line;
                 file.WriteLine(logline);
                 Console.WriteLine(logline);
                 file.Flush();
@@ -171,25 +171,20 @@ namespace BlazorServerMyMongo.Data.Helpers
                     string line;
                     while ((line = file.ReadLine()) != null)
                     {
-                        if (line.Contains("==============================="))
+                        //If line start with # then skip
+                        if (line.StartsWith("#"))
                             continue;
-
-                        if (line.Contains("Web MongoDB Log"))
-                            continue;
-
-                        if (line.Contains("==============================="))
-                            continue;
-
-                        string[] log = line.Split(" - ");
+                        
+                        string[] log = line.Split(" | ");
                         string[] date = log[0].Split(".");
                         string[] time = log[1].Split(" ");
-                        string[] type = time[1].Split("]");
-                        string[] message = log[1].Split(": ");
+                        string[] type = time[1].Split("]|");
+                        string[] message = log[1].Split("||");
                         
                         LogObject logObject = new()
                         {
                             Created = dateTime.Add(new TimeSpan(Int32.Parse(time[0].Split(":")[0]), Int32.Parse(time[0].Split(":")[1]), Int32.Parse(time[0].Split(":")[2]))),
-                            Type = type[0].Replace("[", ""),
+                            Type = type[0].Replace("|[", ""),
                             Message = message[1]
                         };
                         logs.Add(logObject);
