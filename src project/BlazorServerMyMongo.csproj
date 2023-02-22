@@ -16,7 +16,7 @@
   <ItemGroup>
     <PackageReference Include="Blazored.SessionStorage" Version="2.2.0" />
     <PackageReference Include="MongoDB.Bson" Version="2.17.1" />
-    <PackageReference Include="MongoDB.Driver" Version="2.17.1" />
+    <PackageReference Include="MongoDB.Driver" Version="2.19.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
   </ItemGroup>
 
