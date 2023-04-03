@@ -47,7 +47,7 @@ namespace BlazorServerMyMongo.Data.DB
             }
             catch (Exception e)
             {
-                LogManager _ = new(LogType.Error, "User; " + username + " has failed to connect to the DB ", e);
+                LogManager _ = new(LogType.Error, "User: " + username + " has failed to connect to the DB ", e);
                 return null;
             }
         }
