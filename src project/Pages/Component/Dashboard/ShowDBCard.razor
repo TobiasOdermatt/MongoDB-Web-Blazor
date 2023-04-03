@@ -1,4 +1,5 @@
-﻿@code {
+﻿@using Data.Helpers
+@code {
     private BlazorServerMyMongo.Pages.Component.Dashboard.DeleteDBModal? DeleteDBModal { get; set; }
 }
 <DeleteDBModal @ref="DeleteDBModal" DBName="@name" />
@@ -53,15 +54,23 @@
 
     void LoadCardData()
     {
-        DBObject = DBObject ?? new MongoDB.Bson.BsonDocument();
+        try
+        {
+            DBObject = DBObject ?? new MongoDB.Bson.BsonDocument();
 
-        if (!string.IsNullOrEmpty(DBObject.GetValue("name").ToString()))
-            name = DBObject.GetValue("name").AsString;
+            if (!string.IsNullOrEmpty(DBObject.GetValue("name").ToString()))
+                name = DBObject.GetValue("name").AsString;
 
-        if (!string.IsNullOrEmpty(DBObject.GetValue("sizeOnDisk").ToString()))
-            sizeOnDisk = (long)Math.Round(DBObject.GetValue("sizeOnDisk").AsDouble / 1000, MidpointRounding.AwayFromZero);
+            if (!string.IsNullOrEmpty(DBObject.GetValue("sizeOnDisk").ToString()))
+                sizeOnDisk = (long)Math.Round(DBObject.GetValue("sizeOnDisk").AsDouble / 1000, MidpointRounding.AwayFromZero);
 
-        if (!string.IsNullOrEmpty(DBObject.GetValue("empty").ToString()))
-            empty = DBObject.GetValue("empty").AsBoolean;
+            if (!string.IsNullOrEmpty(DBObject.GetValue("empty").ToString()))
+                empty = DBObject.GetValue("empty").AsBoolean;
+        }
+        catch (Exception ex)
+        {
+            LogManager logManager = new(LogManager.LogType.Error, "Failed loading DB details", ex);
+        }
+    }
     }
 }
