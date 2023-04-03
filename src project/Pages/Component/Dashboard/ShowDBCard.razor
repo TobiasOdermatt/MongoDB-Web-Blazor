@@ -59,7 +59,7 @@
             name = DBObject.GetValue("name").AsString;
 
         if (!string.IsNullOrEmpty(DBObject.GetValue("sizeOnDisk").ToString()))
-            sizeOnDisk = DBObject.GetValue("sizeOnDisk").AsInt64/1000;
+            sizeOnDisk = (long)Math.Round(DBObject.GetValue("sizeOnDisk").AsDouble / 1000, MidpointRounding.AwayFromZero);
 
         if (!string.IsNullOrEmpty(DBObject.GetValue("empty").ToString()))
             empty = DBObject.GetValue("empty").AsBoolean;
