@@ -1,0 +1,233 @@
+﻿@using BlazorServerMyMongo.Data.Helpers;
+@using BlazorServerMyMongo.Data.DB;
+@using Newtonsoft.Json.Linq;
+@inject IJSRuntime JSRuntime;
+@inject DBController DBController;
+
+<div class="modal @modalClass" tabindex="-1" role="dialog" style="display:@modalDisplay">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content modal-dialog">
+            <div class="modal-header">
+                <h5 class="modal-title py-2">Import Database</h5>
+                <button type="button" class="btn-close blacktowhitetheme" data-dismiss="modal" @onclick="() => Close()" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="upload-section" style="display:@uploadSectionDisplay">
+                <p>Ensure your file is in .json format before uploading</p>
+                    <div id="drop-area" class="file-upload mt-3">
+                        <input type="file" id="file-input" hidden>
+                    <p id="file-name">Drop your file here for uploading or simply click this section to start.</p>
+                    </div>
+                    <input type="submit" class="btn btn-primary btn-upload" value="Import" @onclick="validateFile">
+                    </div>
+                <div class="mb-3" style="display:@detailSectionDisplay">
+                    <label for="dbNameInput" class="form-label">Database name</label>
+                    <input type="text" class="form-control page" id="dbNameInput" @bind="@dbName" required>
+                </div>
+                <div class="mb-3" style="display:@detailSectionDisplay">
+                    <label class="form-label d-inline">
+                        <span class="mr-2">Total:</span>
+                        <span class="font-weight-bold">@collectionsNames.Count collections</span>
+                    </label>
+                    <label class="float-end">
+                        <span>Size:</span>
+                        <span class="font-weight-bold">@fileSize KB</span>
+                    </label>
+                    <br />
+                    @if (collectionsNames != null)
+                    {
+                        <ul class="list-group page">
+                            <li class="list-group-item page">
+                                <input type="checkbox" id="selectAll" @onchange="selectAllChanged" />
+                                <label for="selectAll">@selectAllText</label>
+                            </li>
+                            @foreach (var collection in collectionsNames)
+                            {
+                                <li class="list-group-item page checkbox-area">
+                                    <input type="checkbox" id="@collection" value="@collection" checked="@checkedCollectionsNames.Contains(collection)" @onchange="e => checkboxChanged(e, collection)" />
+                                    <label for="@collection">@collection</label>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    <input type="submit" class="btn btn-primary btn-upload float-start" value="Select another .json file" @onclick="chooseAnother">
+                    <input type="submit" class="btn btn-primary btn-upload" value="Upload to mongoDB" @onclick="uploadDB">
+                </div>
+                <div class="mb-4">
+                    <br />
+                    <span class="text-danger mt-2" style="display:@errorDisplay">@errorMessage</span>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="() => Close()">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (showBackdrop)
+{
+    <div class="modal-backdrop fade @modalClass" style="display: @modalDisplay"></div>
+}
+
+@code {
+    Guid guid = Guid.NewGuid();
+    string modalDisplay = "none;";
+    string modalClass = "";
+    bool showBackdrop = false;
+
+    string errorDisplay = "none;";
+    string errorMessage = "";
+    string uploadSectionDisplay = "block;";
+    string detailSectionDisplay = "none;";
+
+    string? dbName;
+    double fileSize;
+
+    List<string> collectionsNames = new List<string>();
+    List<string> checkedCollectionsNames = new List<string>();
+    string selectAllText = "Select all";
+
+    protected override void OnInitialized()
+    {
+        checkedCollectionsNames = collectionsNames.ToList();
+    }
+
+    void checkboxChanged(ChangeEventArgs e, string collection)
+    {
+        var isChecked = (bool)e.Value;
+        if (isChecked)
+        {
+            checkedCollectionsNames.Add(collection);
+        }
+        else
+        {
+            checkedCollectionsNames.Remove(collection);
+        }
+        StateHasChanged();
+    }
+
+    void selectAllChanged(ChangeEventArgs e)
+    {
+        var isChecked = (bool)e.Value;
+        if (isChecked)
+        {
+            selectAllText = "Unselect all";
+            checkedCollectionsNames = collectionsNames.ToList();
+        }
+        else
+        {
+            selectAllText = "Select all";
+            checkedCollectionsNames.Clear();
+        }
+        StateHasChanged();
+    }
+
+    public async void Open()
+    {
+        modalDisplay = "block;";
+        await Task.Delay(100);
+        modalClass = "Show";
+        showBackdrop = true;
+        StateHasChanged();
+    }
+
+    public async void Close()
+    {
+        modalClass = "";
+        await Task.Delay(100);
+        modalDisplay = "none;";
+        showBackdrop = false;
+        StateHasChanged();
+    }
+
+    public IJSObjectReference uploadedFile;
+
+    async Task validateFile()
+    {
+        try
+        {
+            uploadedFile = await JSRuntime.InvokeAsync<IJSObjectReference>("dragDropFunctions.getFile", "file-input");
+
+            string fileExtension = await uploadedFile.InvokeAsync<string>("getExtension");
+
+            if (fileExtension != ".json")
+            {
+                errorDisplay = "block;";
+                errorMessage = "Please upload a .json file";
+            }
+
+            // Get the file content as a byte array
+            byte[] fileContent = await JSRuntime.InvokeAsync<byte[]>("dragDropFunctions.readFileContentsAsByteArray", "file-input");
+            fileSize = Math.Round(fileContent.Length / 1024.0, 3); // In KB
+
+            (dbName, collectionsNames) = ImportManager.ProcessDBImportAsync(fileContent);
+            uploadSectionDisplay = "none;";
+            detailSectionDisplay = "block;";
+
+            if (DBController.CheckIfDBExist(dbName))
+            {
+                errorDisplay = "block";
+                errorMessage = "Warning Database: '" + dbName + "' already exists.";
+            }
+            StateHasChanged();
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    void uploadDB()
+    {
+        if (!string.IsNullOrEmpty(dbName))
+        {
+            if (DBController.CheckIfDBExist(dbName))
+            {
+                errorDisplay = "block;";
+                errorMessage = "Database: '" + dbName + "' already exists.";
+            }
+            else
+            {
+
+                bool success = ImportManager.ImportCollectionsAsync(dbName, checkedCollectionsNames, DBController);
+
+                if (success)
+                {
+                    errorDisplay = "none;";
+                    Close();
+                }
+                else
+                {
+                    errorDisplay = "block;";
+                    errorMessage = "There was an error while importing the database.";
+                }
+            }
+        }
+        else
+        {
+            errorDisplay = "block;";
+            errorMessage = "Database name cannot be blank.";
+        }
+
+        StateHasChanged();
+    }
+
+    void chooseAnother()
+    {
+        uploadSectionDisplay = "block;";
+        detailSectionDisplay = "none;";
+        errorDisplay = "none;";
+
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("dragDropFunctions.addEventListeners", "drop-area", "file-input", "file-name", JSRuntime);
+        }
+    }
+}
