@@ -1,0 +1,60 @@
+﻿@page "/Download/{dbname}/{collectionname}"
+@page "/Download/{dbname}"
+@using BlazorServerMyMongo.Data.DB;
+@using Newtonsoft.Json;
+@using Newtonsoft.Json.Linq;
+@inject DBController DBController;
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+
+@code{
+    [Parameter]
+    public string? dbname { get; set; }
+
+    [Parameter]
+    public string? collectionname { get; set; }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (dbname is null  || DBController is null)
+            return;
+
+        if(collectionname != null && collectionname != "")
+        {
+            JObject? collectionData = DBController.GetCollectionExport(dbname, collectionname);
+
+            if (collectionData is null)
+                return;
+
+            var fileName = $"Collection-{collectionname}.json";
+            string jsonString = JsonConvert.SerializeObject(collectionData);
+            await OnDownload(fileName, jsonString, "application/json");
+        }
+        else
+        {
+            JObject? DBData = DBController.GetAllCollectionExport(dbname);
+
+            if (DBData is null)
+                return;
+
+            var fileName = $"DB-{dbname}.json";
+            string jsonString = JsonConvert.SerializeObject(DBData);
+            await OnDownload(fileName, jsonString, "application/json");
+        }
+
+
+        if (collectionname is not null && collectionname != "")
+        {
+            NavigationManager.NavigateTo("/CollectionViewer/" + dbname + "/" + collectionname);
+        }
+    }
+
+    public async Task OnDownload(string fileName, string data, string contentType)
+    {
+        if (data != null)
+        {
+            await JS.InvokeVoidAsync("downloadFile", fileName, data, contentType);
+        }
+    }
+}
