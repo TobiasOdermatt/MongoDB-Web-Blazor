@@ -5,12 +5,12 @@ namespace BlazorServerMyMongo.Data.OTP
 {
     public class OTPManagement
     {
-        public string? DecryptUserData(string? AuthCookieKey, string? RandData)
+        public string? DecryptUserData(string? authCookieKey, string? randData)
         {
-            if (AuthCookieKey is null || RandData is null)
+            if (authCookieKey is null || randData is null)
                 return null;
 
-            string DecryptedData = BinaryStringToText(XORBinary(AuthCookieKey, RandData));
+            string DecryptedData = binaryStringToText(xorBinary(authCookieKey, randData));
 
             if (!DecryptedData.Contains("Data:"))
                 return null;
@@ -18,19 +18,19 @@ namespace BlazorServerMyMongo.Data.OTP
             return DecryptedData;
         }
 
-        public (string, string) getUserData(string data)
+        public (string, string) GetUserData(string inputData)
         {
-            StringBuilder builder = new StringBuilder(data);
+            StringBuilder builder = new StringBuilder(inputData);
             builder.Replace("Data:", "");
-            string[] DataArray = builder.ToString().Split("@");
+            string[] dataArray = builder.ToString().Split("@");
 
-            if (DataArray.Length is not 2)
+            if (dataArray.Length is not 2)
                 return ("", "");
 
-            return (DataArray[0], DataArray[1]);
+            return (dataArray[0], dataArray[1]);
         }
-        
-        private static string XORBinary(string bin1, string bin2)
+
+        private static string xorBinary(string bin1, string bin2)
         {
             int len = Math.Max(bin1.Length, bin2.Length);
             string res = "";
@@ -49,7 +49,7 @@ namespace BlazorServerMyMongo.Data.OTP
             return res;
         }
 
-        private string BinaryStringToText(string binary)
+        private string binaryStringToText(string binary)
         {
             string[] binaryArray = binary.Split(' ');
             string text = "";

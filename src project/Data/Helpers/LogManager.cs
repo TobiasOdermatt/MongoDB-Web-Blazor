@@ -7,8 +7,6 @@ namespace BlazorServerMyMongo.Data.Helpers
         static string currentDirectory = $"{Directory.GetCurrentDirectory()}";
         readonly string path = $"{currentDirectory}\\Logs\\{DateTime.Now.ToString("yyyy")}\\{DateTime.Now.ToString("MM")}\\";
 
-
-
         /// <summary>
         /// Write a new log
         /// </summary>
@@ -64,12 +62,12 @@ namespace BlazorServerMyMongo.Data.Helpers
         {
             if (!File.Exists(path + type + ".txt"))
             {
-                StreamWriter CreateFile = new(path + type + ".txt", false);
-                CreateFile.WriteLine("#===============================");
-                CreateFile.WriteLine("# Web MongoDB Log " + type);
-                CreateFile.WriteLine("#===============================");
-                CreateFile.Flush();
-                CreateFile.Close();
+                StreamWriter createFile = new(path + type + ".txt", false);
+                createFile.WriteLine("#===============================");
+                createFile.WriteLine("# Web MongoDB Log " + type);
+                createFile.WriteLine("#===============================");
+                createFile.Flush();
+                createFile.Close();
             }
         }
 
@@ -110,14 +108,15 @@ namespace BlazorServerMyMongo.Data.Helpers
         public (int, int, int) CountLog(DateTime date)
         {
             string currentpath = $"{currentDirectory}\\Logs\\{date.ToString("yyyy")}\\{date.ToString("MM")}\\";
-            int countOfInfo = CountLinesInLogFile(currentpath + "Info.txt");
-            int countOfWarning = CountLinesInLogFile(currentpath + "Warning.txt");
-            int countOfError = CountLinesInLogFile(currentpath + "Error.txt");
+            int countOfInfo = countLinesInLogFile(currentpath + "Info.txt");
+            int countOfWarning = countLinesInLogFile(currentpath + "Warning.txt");
+            int countOfError = countLinesInLogFile(currentpath + "Error.txt");
+
             return (countOfInfo, countOfWarning, countOfError);
         }
 
-        // Counts the lines in the log file -3
-        private int CountLinesInLogFile(string filePath)
+        // Counts the lines in the log file
+        int countLinesInLogFile(string filePath)
         {
             int count = 0;
             try
@@ -125,16 +124,23 @@ namespace BlazorServerMyMongo.Data.Helpers
                 if (File.Exists(filePath))
                 {
                     StreamReader file = new(filePath);
-                    while (file.ReadLine() != null)
+                    string? line;
+                    while ((line = file.ReadLine()) != null)
+                    {
+                        //If line start with # then skip
+                        if (line.StartsWith("#"))
+                            continue;
+
                         count++;
+                    }
                     file.Close();
-                    count -= 3;
                 }
             }
             catch (Exception e)
             {
                 Console.WriteLine($"[LogManager][CountLinesInLogFile] Error: {e.Message}");
             }
+
             return count;
         }
 
@@ -157,6 +163,7 @@ namespace BlazorServerMyMongo.Data.Helpers
             {
                 Console.WriteLine($"[LogManager][GetLogDates] Error: {e.Message}");
             }
+
             return dates;
         }
 
@@ -168,7 +175,7 @@ namespace BlazorServerMyMongo.Data.Helpers
                 if (File.Exists(path))
                 {
                     StreamReader file = new(path);
-                    string line;
+                    string? line;
                     while ((line = file.ReadLine()) != null)
                     {
                         //If line start with # then skip
@@ -205,6 +212,7 @@ namespace BlazorServerMyMongo.Data.Helpers
         {
             List<LogObject> logObjects = new();
             string currentpath = $"{currentDirectory}\\Logs\\{date.ToString("yyyy")}\\{date.ToString("MM")}\\";
+
             try
             {
                 if (type == "Info")
@@ -230,6 +238,7 @@ namespace BlazorServerMyMongo.Data.Helpers
             {
                 Console.WriteLine($"[LogManager][ReadLogFiles] Error: {e.Message}");
             }
+
             return logObjects;
         }
     }

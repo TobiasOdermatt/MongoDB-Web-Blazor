@@ -27,7 +27,7 @@
                 </button>
                 <ul class="dropdown-menu element-background">
                     <li><a class="dropdown-item element-background" href="#">Details</a></li>
-                    <li><a class="dropdown-item element-background" href="#">Download</a></li>
+                    <li><a class="dropdown-item element-background" href="/Download/@name">Download DB</a></li>
                     <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item text-danger" href="" @onclick="() => DeleteDBModal.Open()" @onclick:preventDefault>Delete Database</a></li>
                 </ul>
@@ -42,17 +42,17 @@
     [Parameter]
     public int CollectionAmount { get; set; }
 
-    public string? name { get; set; } = "";
-    public long? sizeOnDisk { get; set; } = 0;
-    public bool? empty { get; set; } = false;
+    string? name { get; set; } = "";
+    long? sizeOnDisk { get; set; } = 0;
+    bool? empty { get; set; } = false;
 
     protected override Task OnParametersSetAsync()
     {
-        LoadCardData();
+        loadCardData();
         return base.OnParametersSetAsync();
     }
 
-    void LoadCardData()
+    void loadCardData()
     {
         try
         {

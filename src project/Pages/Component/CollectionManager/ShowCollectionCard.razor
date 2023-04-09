@@ -1,5 +1,5 @@
 ﻿@code {
-    private BlazorServerMyMongo.Pages.Component.CollectionManager.DeleteCollectionModal? DeleteCollectionModal { get; set; }
+     BlazorServerMyMongo.Pages.Component.CollectionManager.DeleteCollectionModal? DeleteCollectionModal { get; set; }
 }
 <DeleteCollectionModal @ref="DeleteCollectionModal" DBName="@DBName" CollectionName="@name" />
 <div class="col-lg-4 col-xl-3 col-md-5 mb-8 col-sm-12 py-3">
@@ -23,7 +23,7 @@
                 <ul class="dropdown-menu element-background">
                     <li><a class="dropdown-item element-background" href="#">Details</a></li>
                     <li><a class="dropdown-item element-background" href="#">Upload .JSON</a></li>
-                    <li><a class="dropdown-item element-background" href="#">Download Collection</a></li>
+                    <li><a class="dropdown-item element-background" href="/Download/@DBName/@name/">Download Collection</a></li>
                     <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item text-danger" href="" @onclick="() => DeleteCollectionModal.Open()" @onclick:preventDefault>Delete Collection</a></li>
                 </ul>
@@ -37,18 +37,19 @@
     public MongoDB.Bson.BsonDocument CollectionObject { get; set; } = default!;
     [Parameter]
     public string DBName { get; set; } = "";
-    public string? name { get; set; } = "";
-    public bool? readOnly { get; set; } = null;
-    public Guid uuid;
+
+    string? name { get; set; } = "";
+    bool? readOnly { get; set; } = null;
+    Guid uuid;
+
     protected override Task OnParametersSetAsync()
     {
-        LoadCardData();
+        loadCardData();
         return base.OnParametersSetAsync();
     }
     
     //Loads information from the BsonDocument into the variables
-
-    void LoadCardData()
+    void loadCardData()
     {
         CollectionObject = CollectionObject ?? new MongoDB.Bson.BsonDocument();
         //Get the name of the collection
@@ -62,6 +63,5 @@
         //read variable readOnly from parent property info
         if (!string.IsNullOrEmpty(CollectionObject.GetValue("info").AsBsonDocument.GetValue("readOnly").ToString()))
             readOnly = CollectionObject.GetValue("info").AsBsonDocument.GetValue("readOnly").AsBoolean;
-      
     }
 }

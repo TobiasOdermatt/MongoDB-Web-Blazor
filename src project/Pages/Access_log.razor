@@ -1,24 +1,25 @@
 ﻿@page "/Access_log"
 @using BlazorServerMyMongo.Data.Helpers
 @inject LogManager logManager;
+
 <h1>Activity Protocol</h1>
 <br />
 
 <div class="row">
-    <button @onclick="() => ChangeLogType(LogType.All)" class="infoBox col-2 page ">All @CountOfAll</button>
-    <button @onclick="() => ChangeLogType(LogType.Error)" class="infoBox col-2 page">Error @CountOfError</button>
-    <button @onclick="() => ChangeLogType(LogType.Warning)" class="infoBox col-2 page">Warning @CountOfWarning</button>
-    <button @onclick="() => ChangeLogType(LogType.Info)" class="infoBox col-2 page">Information @CountOfInfo</button>
-    <select @onchange="ChangeDate" class="col-3 page infoBox">
-    @foreach (DateTime date in AvailableLogDates)
+    <button @onclick="() => changeLogType(LogType.All)" class="infoBox col-2 page ">All @countOfAll</button>
+    <button @onclick="() => changeLogType(LogType.Error)" class="infoBox col-2 page">Error @countOfError</button>
+    <button @onclick="() => changeLogType(LogType.Warning)" class="infoBox col-2 page">Warning @countOfWarning</button>
+    <button @onclick="() => changeLogType(LogType.Info)" class="infoBox col-2 page">Information @countOfInfo</button>
+    <select @onchange="changeDate" class="col-3 page infoBox">
+        @foreach (DateTime date in availableLogDates)
     {
         bool newlog = date.Date.Year == DateTime.Now.Year & date.Date.Month == DateTime.Now.Month;
         <option value="@date" selected="@newlog.ToString()" class="page">@date.Year/@date.Month</option>
     }
 </select>
 <br />
-
-    <table class="table page">
+    <table class="table page sortable">
+        <div class="searchable-header"></div>
         <thead>
             <tr>
                 <th scope="col">Date</th>
@@ -27,7 +28,7 @@
             </tr>
         </thead>
         <tbody>
-            @foreach (var log in logManager.ReadLogFiles(CurrentType.ToString(), CurrentDate))
+            @foreach (var log in logManager.ReadLogFiles(currentType.ToString(), currentDate))
             {
                 <tr>
                     <td>@log.Created</td>
@@ -40,16 +41,16 @@
 </div>
 
 @code{
-    public int CountOfInfo;
-    public int CountOfWarning;
-    public int CountOfError;
-    public int CountOfAll;
+    int countOfInfo;
+    int countOfWarning;
+    int countOfError;
+    int countOfAll;
 
-    public DateTime CurrentDate { get; set; }
+    DateTime currentDate { get; set; }
 
-    public List<DateTime> AvailableLogDates { get; set; }
+    List<DateTime> availableLogDates { get; set; }
 
-    public LogType CurrentType { get; set; } = LogType.All;
+    LogType currentType { get; set; } = LogType.All;
 
     public enum LogType
     {
@@ -59,33 +60,33 @@
         Error
     }
     
-    void ChangeLogType(LogType SelectedType)
+    void changeLogType(LogType SelectedType)
     {
-        CurrentType = SelectedType;
-        Refresh();
+        currentType = SelectedType;
+        refresh();
     }
 
-    void ChangeDate(ChangeEventArgs e)
+    void changeDate(ChangeEventArgs e)
     {
-        CurrentDate = DateTime.Parse(e.Value.ToString());
-        Refresh();
+        currentDate = DateTime.Parse(e.Value.ToString());
+        refresh();
     }
     
     protected override void OnInitialized()
     {
         base.OnInitialized();
-        AvailableLogDates = logManager.GetAvailableLogDates();
-        if (CurrentDate == DateTime.MinValue)
+        availableLogDates = logManager.GetAvailableLogDates();
+        if (currentDate == DateTime.MinValue)
         {
-            CurrentDate = DateTime.Now;
+            currentDate = DateTime.Now;
         }
-        Refresh();
+        refresh();
     }
     
-    void Refresh()
+    void refresh()
     {
-        (CountOfInfo, CountOfWarning, CountOfError) = logManager.CountLog(CurrentDate);
-        CountOfAll = CountOfError + CountOfInfo + CountOfWarning;
+        (countOfInfo, countOfWarning, countOfError) = logManager.CountLog(currentDate);
+        countOfAll = countOfError + countOfInfo + countOfWarning;
         StateHasChanged();
     }
 }

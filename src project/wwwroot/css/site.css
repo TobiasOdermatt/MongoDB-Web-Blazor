@@ -25,8 +25,9 @@
     margin-top: 1rem;
 }
 
-.addButton {
+.navbutton {
     font-size: 0.8rem;
+    margin-right: 1rem
 }
 
 .blacktowhitetheme {
@@ -187,4 +188,25 @@ a, .btn-link {
 
 .active {
     border-color: #ff1493;
+}
+
+.file-upload {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 2px dashed var(--font-color);
+    padding: 80px;
+    cursor: pointer;
+}
+
+.file-upload:hover {
+    background-color: var(--third-color);
+}
+
+.btn-upload {
+    margin-top: 10px;
+}
+
+.checkbox-area{
+    padding-left: 30px;
 }
