@@ -1,7 +1,11 @@
 ﻿using BlazorServerMyMongo.Data.Helpers;
 using MongoDB.Bson;
+using MongoDB.Bson.IO;
+using MongoDB.Bson.Serialization.Serializers;
+using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using static BlazorServerMyMongo.Data.Helpers.LogManager;
+using Newtonsoft.Json.Linq;
 
 namespace BlazorServerMyMongo.Data.DB
 {
@@ -30,16 +34,18 @@ namespace BlazorServerMyMongo.Data.DB
         {
             if (Client is null)
                 return null;
-            List<BsonDocument>? DBList = new();
+
+            List<BsonDocument>? dbList = new();
             try
             {
-                DBList = Client.ListDatabases().ToList();
+                dbList = Client.ListDatabases().ToList();
             }
             catch (Exception e)
             {
                 LogManager _ = new(LogType.Error, "User: " + Username + " has failed to load Dashboard ", e);
             }
-            return DBList;
+
+            return dbList;
         }
 
         /// <summary>
@@ -51,6 +57,7 @@ namespace BlazorServerMyMongo.Data.DB
         {
             if (Client is null)
                 return null;
+
             List<BsonDocument>? result;
             try
             {
@@ -61,6 +68,7 @@ namespace BlazorServerMyMongo.Data.DB
                 LogManager _ = new(LogType.Error, "User: " + Username + " has failed to load the All Collections from DB: " + dbName, e);
                 result = null;
             }
+
             return result;
         }
 
@@ -73,6 +81,7 @@ namespace BlazorServerMyMongo.Data.DB
         {
             if (Client is null)
                 return -1;
+
             try
             {
                 return Client.GetDatabase(dbName).ListCollections().ToList().Count;
@@ -93,21 +102,22 @@ namespace BlazorServerMyMongo.Data.DB
         {
             if (Client is null)
                 return null;
+
             List<string> result = new();
             try
             {
-                var Collection = Client.GetDatabase(dbName).GetCollection<BsonDocument>(collectionName);
+                var collection = Client.GetDatabase(dbName).GetCollection<BsonDocument>(collectionName);
 
-                if (Collection is null)
+                if (collection is null)
                     return null;
 
-                var Filter = new BsonDocument();
-                var Cursor = Collection.Find(Filter).ToCursor();
-                while (Cursor.MoveNext())
+                var filter = new BsonDocument();
+                var cursor = collection.Find(filter).ToCursor();
+                while (cursor.MoveNext())
                 {
-                    foreach (var Document in Cursor.Current)
+                    foreach (var document in cursor.Current)
                     {
-                        result.Add(Document.ToJson());
+                        result.Add(document.ToJson());
                     }
                 }
                 return result;
@@ -115,8 +125,101 @@ namespace BlazorServerMyMongo.Data.DB
             catch (Exception e)
             {
                 LogManager _ = new(LogType.Error, "User: " + Username + " has failed to load the Collection: " + collectionName + " from DB: " + dbName, e);
+                return null;
             }
-            return null;
+        }
+
+        public JObject? GetCollectionExport(string dbName, string collectionName)
+        {
+            if (Client is null)
+                return null;
+
+            try
+            {
+                var db = Client.GetDatabase(dbName);
+                var collections = db.ListCollections().ToList();
+                JObject result = new JObject();
+                JObject databaseObject = new JObject();
+
+                var collectionData = db.GetCollection<BsonDocument>(collectionName);
+                var filter = new BsonDocument();
+                var cursor = collectionData.Find(filter).ToCursor();
+                JArray collectionArray = new JArray();
+                var jsonWriterSettings = new JsonWriterSettings { OutputMode = JsonOutputMode.CanonicalExtendedJson };
+
+                while (cursor.MoveNext())
+                {
+                    foreach (var document in cursor.Current)
+                    {
+                        JObject docAsJson = JObject.Parse(document.ToJson(jsonWriterSettings));
+
+                        if (docAsJson.ContainsKey("_id"))
+                            docAsJson.Remove("_id");
+
+                        collectionArray.Add(docAsJson);
+                    }
+                }
+                databaseObject.Add(collectionName, collectionArray);
+
+                result.Add(dbName, databaseObject);
+                return result;
+            }
+            catch (Exception e)
+            {
+                LogManager _ = new(LogType.Error, "User: " + Username + " has failed to load the Collection: " + collectionName + " from DB: " + dbName, e);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Get all collections from a Database, the return has every data from every collection in the DB
+        /// </summary>
+        /// <param name="dbName">Database Name</param>
+        /// <returns>Returns JObject?</returns>
+        public JObject? GetAllCollectionExport(string dbName)
+        {
+            if (Client is null)
+                return null;
+
+            try
+            {
+                var db = Client.GetDatabase(dbName);
+                var collections = db.ListCollections().ToList();
+                JObject result = new JObject();
+                JObject databaseObject = new JObject();
+
+                foreach (var collection in collections)
+                {
+                    var collectionName = collection["name"].AsString;
+                    var collectionData = db.GetCollection<BsonDocument>(collectionName);
+                    var filter = new BsonDocument();
+                    var cursor = collectionData.Find(filter).ToCursor();
+                    JArray collectionArray = new JArray();
+                    var jsonWriterSettings = new JsonWriterSettings { OutputMode = JsonOutputMode.CanonicalExtendedJson };
+
+                    while (cursor.MoveNext())
+                    {
+                        foreach (var document in cursor.Current)
+                        {
+                            JObject docAsJson = JObject.Parse(document.ToJson(jsonWriterSettings));
+
+                            if (docAsJson.ContainsKey("_id"))
+                                docAsJson.Remove("_id");
+
+                            collectionArray.Add(docAsJson);
+                        }
+                    }
+                    databaseObject.Add(collectionName, collectionArray);
+                }
+
+                result.Add(dbName, databaseObject);
+                return result;
+            }
+            catch (Exception e)
+            {
+                LogManager _ = new(LogType.Error, "User: " + Username + " has failed to load the All Collections from DB: " + dbName, e);
+                return null;
+            }
         }
 
         /// <summary>
@@ -128,6 +231,7 @@ namespace BlazorServerMyMongo.Data.DB
         {
             if (Client is null)
                 return false;
+
             bool result;
             try
             {
@@ -140,32 +244,67 @@ namespace BlazorServerMyMongo.Data.DB
                 LogManager _ = new(LogType.Error, "User: " + Username + " has failed to delete the DB: " + dbName + " " + e);
                 result = false;
             }
-            return result;
 
+            return result;
         }
 
+        ///<summary>
+        ///Check if datbase already exist
+        /// </summary>
+        /// <param name="dbName">Database name</param>
+        /// <returns>bool will be returned</returns>
+        public bool CheckIfDBExist(string dbName)
+        {
+            if (Client is null)
+                return false;
+
+            bool result;
+            try
+            {
+                var filter = new BsonDocument("name", dbName);
+                var options = new ListDatabasesOptions { Filter = filter };
+                var list = Client.ListDatabases(options).ToList();
+                if (list.Count == 0)
+                {
+                    result = false;
+                }
+                else
+                {
+                    result = true;
+                }
+            }
+            catch (Exception e)
+            {
+                LogManager _ = new(LogType.Error, "User: " + Username + " has failed to check if DB: " + dbName + " exist", e);
+                result = false;
+            }
+
+            return result;
+        }
         /// <summary>
         /// Create a new Collection
         /// </summary>
-        /// <param name="dbName">Database Name</param>
-        /// <param name="collectionName">Collection Name</param>
+        /// <param name="dbName">Database name</param>
+        /// <param name="collectionName">Collection name</param>
         /// <returns>bool will be returned, if success</returns>
         public bool CreateCollection(string dbName, string collectionName)
         {
             if (Client is null)
                 return false;
-            bool result = false;
+
+            bool result;
             try
             {
                 Client.GetDatabase(dbName).CreateCollection(collectionName);
-                LogManager log = new(LogType.Info, "User: " + Username + " has created the Collection: " + collectionName + " in DB: " + dbName);
+                LogManager _ = new(LogType.Info, "User: " + Username + " has created the Collection: " + collectionName + " in DB: " + dbName);
                 result = true;
             }
             catch (Exception e)
             {
-                LogManager log = new(LogType.Error, "User: " + Username + " has failed by creating Collection " + collectionName + " in DB: " + dbName, e);
+                LogManager _ = new(LogType.Error, "User: " + Username + " has failed by creating Collection " + collectionName + " in DB: " + dbName, e);
                 result = false;
             }
+
             return result;
         }
 
@@ -177,40 +316,77 @@ namespace BlazorServerMyMongo.Data.DB
         /// <returns>bool will be returned, if success</returns>
         public bool DeleteCollection(string dbName, string collectionName)
         {
-            bool result = false;
             if (Client is null)
-                result = false;
+                return false;
+
+            bool result;
             try
             {
                 var db = Client.GetDatabase(dbName);
                 db.DropCollection(collectionName);
-                LogManager log = new(LogType.Info, "User: " + Username + " has deleted the Collection: " + collectionName + " in DB: " + dbName);
+                LogManager _ = new(LogType.Info, "User: " + Username + " has deleted the Collection: " + collectionName + " in DB: " + dbName);
                 result = true;
             }
             catch (Exception e)
             {
-                LogManager log = new(LogType.Error, "User: " + Username + " has failed by deleting Collection" + collectionName + " in DB: " + dbName, e);
+                LogManager _ = new(LogType.Error, "User: " + Username + " has failed by deleting Collection" + collectionName + " in DB: " + dbName, e);
                 result = false;
             }
+
             return result;
         }
 
-        public bool UploadJSON(string dbName, string collectionName, string json)
+        public bool UploadJSON(string dbName, string collectionName, JToken json)
         {
             if (Client is null)
                 return false;
+
             try
             {
                 var db = Client.GetDatabase(dbName);
                 var collection = db.GetCollection<BsonDocument>(collectionName);
-                var document = BsonDocument.Parse(json);
-                collection.InsertOne(document);
+
+                // Prüfen, ob es sich bei 'json' um ein Array handelt
+                if (json is JArray jsonArray)
+                {
+                    // Durchlaufen Sie jedes Element im Array und fügen Sie es als BsonDocument ein
+                    foreach (JObject jsonObject in jsonArray)
+                    {
+                        var document = BsonDocument.Parse(jsonObject.ToString());
+                        collection.InsertOne(document);
+                    }
+                }
+                else
+                {
+                    // Wenn es kein Array ist, verarbeiten Sie es wie bisher 
+                    var document = BsonDocument.Parse(json.ToString());
+                    collection.InsertOne(document);
+                }
+
                 return true;
             }
             catch
             {
                 return false;
             }
+        }
+
+        public byte[] ConvertToBson(List<string> documents)
+        {
+            var bsonDocuments = new List<BsonDocument>();
+
+            foreach (var document in documents)
+            {
+                bsonDocuments.Add(BsonDocument.Parse(document));
+            }
+
+            var memoryStream = new MemoryStream();
+            var bsonWriter = new BsonBinaryWriter(memoryStream);
+            var context = BsonSerializationContext.CreateRoot(bsonWriter);
+            var documentSerializer = new BsonDocumentSerializer();
+            documentSerializer.Serialize(context, bsonDocuments);
+
+            return memoryStream.ToArray();
         }
     }
 }
