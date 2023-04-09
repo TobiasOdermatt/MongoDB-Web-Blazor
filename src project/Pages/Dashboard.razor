@@ -7,37 +7,40 @@
 <PageTitle>Dashboard</PageTitle>
 @code {
     private BlazorServerMyMongo.Pages.Component.Dashboard.CreateDBModal? CreateDBModal { get; set; }
+    private BlazorServerMyMongo.Pages.Component.Dashboard.ImportDBModal? ImportDBModal { get; set; }
 }
 <CreateDBModal @ref="CreateDBModal"></CreateDBModal>
+<ImportDBModal @ref="ImportDBModal"></ImportDBModal>
 <div class="top-div">
-<h2>List of all databases</h2>
+    <h2>List of all databases</h2>
     @{
-        List<MongoDB.Bson.BsonDocument>? _dbList = ListAllDBs();
-        int count = _dbList != null ? _dbList.Count : 0;
+        List<MongoDB.Bson.BsonDocument>? dbList = listAllDBs();
+        int count = dbList != null ? dbList.Count : 0;
         int CollectionAmount = 0;
     }
-        <p class="second-text-color resultText">@count Databases found</p>
-        <button type="button" @onclick="() => CreateDBModal.Open()" class="btn btn-primary addButton">Create database</button>
+    <p class="second-text-color resultText">@count Databases found</p>
+    <button type="button" @onclick="() => CreateDBModal.Open()" class="btn btn-primary navbutton">Create database</button>
+    <button type="button" @onclick="() => ImportDBModal.Open()" class="btn btn-primary navbutton">Import database</button>
 </div>
 <br />
 <div class="row bottom-div">
-    @if (_dbList is not null)
+    @if (dbList is not null)
     {
-        @foreach (MongoDB.Bson.BsonDocument db in _dbList)
+        @foreach (MongoDB.Bson.BsonDocument db in dbList)
         {
             if (!string.IsNullOrEmpty(db.GetValue("name").ToString()))
-                CollectionAmount = GetCollectionAmount(db.GetValue("name").AsString);
+                CollectionAmount = getCollectionAmount(db.GetValue("name").AsString);
             <ShowDBCard DBObject=db CollectionAmount=CollectionAmount />
         }
     }
 </div>
-@code{
-    private List<MongoDB.Bson.BsonDocument>? ListAllDBs()
+@code {
+    List<MongoDB.Bson.BsonDocument>? listAllDBs()
     {
         return DBController.ListAllDatabases();
     }
 
-    private int GetCollectionAmount (string dbname)
+    int getCollectionAmount(string dbname)
     {
         return DBController.GetNumberOfCollections(dbname);
     }
