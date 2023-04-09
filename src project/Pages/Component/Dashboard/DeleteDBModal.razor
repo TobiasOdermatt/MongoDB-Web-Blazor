@@ -23,7 +23,7 @@
             <div class="modal-footer py-2">
                 @if (ConfirmationText == DBName)
                 {
-                    <button type="submit" class="btn btn-danger" @onclick="DeleteDB"> Delete Database</button>
+                    <button type="submit" class="btn btn-danger" @onclick="deleteDB"> Delete Database</button>
                 }
                 else
                 {
@@ -45,14 +45,14 @@
 @code {
     [Parameter]
     public string DBName { get; set; } = "";
-    private string ConfirmationText { get; set; } = "";
-    private bool? success = null;
+    string ConfirmationText { get; set; } = "";
+    bool? success = null;
     
     @inject DBController dbcontroller
-    public Guid Guid = Guid.NewGuid();
-    public string ModalDisplay = "none;";
-    public string ModalClass = "";
-    public bool ShowBackdrop = false;
+    Guid Guid = Guid.NewGuid();
+    string ModalDisplay = "none;";
+    string ModalClass = "";
+    bool ShowBackdrop = false;
 
     public async void Open()
     {
@@ -72,7 +72,7 @@
         StateHasChanged();
     }
     
-    public async Task DeleteDB()
+    async Task deleteDB()
     {
         success = dbcontroller.DeleteDB(DBName);
         if(success is true){

@@ -4,8 +4,8 @@
 @using MongoDB.Bson.IO;
 @using MongoDB.Bson.Serialization;
 @using MongoDB.Driver
-
 @inject DBController DBController;
+
 <h2>View Collection: @Collectionname</h2>
 <div class="row bottom-div">
     
@@ -31,7 +31,7 @@
 
     List<string>? collectionList;
 
-    private List<string>? ListCollection()
+    List<string>? listCollection()
     {
         if (DBname is null || Collectionname is null)
             return null;
@@ -41,7 +41,8 @@
 
     protected override Task OnInitializedAsync()
     {
-        collectionList = ListCollection();
+        collectionList = listCollection();
+
         return base.OnInitializedAsync();
     }
  }

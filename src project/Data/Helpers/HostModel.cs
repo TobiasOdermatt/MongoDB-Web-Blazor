@@ -4,7 +4,7 @@ namespace BlazorServerMyMongo.Data.Helpers
 {
     public class HostModel : PageModel
     {
-        private readonly AppData appData;
+        readonly AppData appData;
 
         public HostModel(AppData appData)
         {

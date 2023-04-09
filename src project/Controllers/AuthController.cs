@@ -11,40 +11,41 @@ namespace BlazorServerMyMongo.Controllers
     [ApiController]
     public class AuthController : Controller
     {
-        private Object GenerateUUIDObject(string UUID)
+        Object generateUUIDObject(string uuid)
         {
-            string uuid = UUID;
-            return new { uuid = uuid };
+            return new { uuid };
         }
 
         // If connection is successful, UUID will be returned
         [HttpPost("CreateOTP")]
         public IActionResult CreateOTP(ConnectRequestObject dataJSON)
         {
-            if (Request.HttpContext.Connection.RemoteIpAddress == null) return NoContent();
+            if (Request.HttpContext.Connection.RemoteIpAddress == null) 
+                return NoContent();
 
             string ipOfRequest = Request.HttpContext.Connection.RemoteIpAddress.ToString();
 
             OTPManagement otpManagement = new();
             string? decryptedData = otpManagement.DecryptUserData(dataJSON.AuthCookieKey, dataJSON.RandData);
 
-            if (decryptedData is null) return NoContent();
+            if (decryptedData is null) 
+                return NoContent();
 
-            (string username, string password) = otpManagement.getUserData(decryptedData);
+            (string username, string password) = otpManagement.GetUserData(decryptedData);
             var uuid = Guid.NewGuid().ToString();
 
             DBConnector connector = new(username, password, uuid, Request.HttpContext.Connection.RemoteIpAddress.ToString());
 
             if (connector.Client != null)
             {
-                var uuidObject = GenerateUUIDObject(uuid);
+                var uuidObject = generateUUIDObject(uuid);
 
                 DateTime localDate = DateTime.Now;
                 OTPFileObject newFile = new(localDate, dataJSON.RandData);
-                OTPFileManagement fileManger = new();
+                OTPFileManagement fileManager = new();
 
-                fileManger.WriteOTPFile(uuid, newFile);
-                fileManger.CleanUpOTPFiles();
+                fileManager.WriteOTPFile(uuid, newFile);
+                fileManager.CleanUpOTPFiles();
 
                 LogManager _ = new(LogType.Info, "OTP file created for user: " + username + " with UUID " + uuid + " IP: " + ipOfRequest);
 

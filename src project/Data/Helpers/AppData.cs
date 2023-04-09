@@ -2,6 +2,6 @@
 {
     public class AppData
     {
-        public string Theme { get; set; }
+        public string? Theme { get; set; }
     }
 }

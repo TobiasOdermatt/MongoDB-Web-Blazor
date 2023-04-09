@@ -1,4 +1,6 @@
 ﻿@using BlazorServerMyMongo.Data.DB
+@inject DBController dbcontroller;
+
 <div class="modal @ModalClass" tabindex="-1" role="dialog" style="display:@ModalDisplay">
     <div class="modal-dialog" role="document">
         <div class="modal-content modal-dialog">
@@ -14,7 +16,7 @@
                 <input type="text" @bind="@newCollectionName" class="form-control page" placeholder="collection name" required/>    
             </div>
             <div class="modal-footer py-2">
-                    <button type="submit" class="btn btn-success" @onclick="CreateDB"> Create Database</button>
+                <button type="submit" class="btn btn-success" @onclick="createDB"> Create Database</button>
  
                 <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="() => Close()">Cancel</button>
             </div>
@@ -29,14 +31,13 @@
 }
 
 @code {
-    private string? newDBName { get; set; }
-    private string? newCollectionName { get; set; }
+    string? newDBName { get; set; }
+    string? newCollectionName { get; set; }
     
-    @inject DBController dbcontroller;
-    public Guid Guid = Guid.NewGuid();
-    public string ModalDisplay = "none;";
-    public string ModalClass = "";
-    public bool ShowBackdrop = false;
+    Guid Guid = Guid.NewGuid();
+    string ModalDisplay = "none;";
+    string ModalClass = "";
+    bool ShowBackdrop = false;
 
     public async void Open()
     {
@@ -56,7 +57,7 @@
         StateHasChanged();
     }
     
-    public async Task CreateDB()
+    async Task createDB()
     {
         if(!string.IsNullOrEmpty(newDBName) && newDBName != "")
         {

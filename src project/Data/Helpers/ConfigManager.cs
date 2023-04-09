@@ -4,7 +4,7 @@ namespace BlazorServerMyMongo.Data.Helpers
 {
     public class ConfigManager
     {
-        public static IConfiguration Config;
+        public static IConfiguration? Config;
 
         public ConfigManager() { }
 

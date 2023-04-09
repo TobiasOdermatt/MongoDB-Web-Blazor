@@ -1,23 +1,24 @@
 ﻿@page "/CollectionManager/{dbname}"
 @using BlazorServerMyMongo.Data.DB;
 @using BlazorServerMyMongo.Pages.Component.CollectionManager
-@using Data.DB;
 @inject DBController DBController;
+@inject IJSRuntime JS
+
 <h2>List of all collections</h2>
 <div class="row bottom-div">
     @{
-        List<MongoDB.Bson.BsonDocument>? CollectionList = ListAllCollections();
-        int count = CollectionList != null ? CollectionList.Count : 0;
+        List<MongoDB.Bson.BsonDocument>? collections = listAllCollections();
+        int count = collections != null ? collections.Count : 0;
     }
     <p class="second-text-color">@count collections found on database @DBName</p>
-    @if (CollectionList == null)
+    @if (collections == null)
     {
         <p class="text-danger">Not authorized on @DBName</p>
     }
     else{
-        @foreach (var Collection in CollectionList)
+        @foreach (var collection in collections)
         {
-            <ShowCollectionCard CollectionObject="@Collection" DBName="@DBName" />
+            <ShowCollectionCard CollectionObject="@collection" DBName="@DBName" />
         }
     }
 
@@ -26,7 +27,7 @@
     [Parameter]
     public string? DBName { get; set; }
     
-    private List<MongoDB.Bson.BsonDocument>? ListAllCollections()
+    List<MongoDB.Bson.BsonDocument>? listAllCollections()
     {
         if (DBName is null)
             return null;

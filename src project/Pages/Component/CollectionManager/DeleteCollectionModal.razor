@@ -1,4 +1,6 @@
-﻿@using BlazorServerMyMongo.Data.DB
+﻿@inject NavigationManager navigationManager;
+
+@using BlazorServerMyMongo.Data.DB
 <div class="modal @ModalClass" tabindex="-1" role="dialog" style="display:@ModalDisplay">
     <div class="modal-dialog" role="document">
         <div class="modal-content modal-dialog">
@@ -52,14 +54,15 @@
     public string CollectionName { get; set; } = "";
     [Parameter]
     public string DBName { get; set; } = "";
-    private string ConfirmationText { get; set; } = "";
-    private bool? success = null;
+
+    string ConfirmationText { get; set; } = "";
+    bool? success = null;
 
     @inject DBController dbcontroller
-    public Guid Guid = Guid.NewGuid();
-    public string ModalDisplay = "none;";
-    public string ModalClass = "";
-    public bool ShowBackdrop = false;
+    Guid Guid = Guid.NewGuid();
+    string ModalDisplay = "none;";
+    string ModalClass = "";
+    bool ShowBackdrop = false;
 
     public async void Open()
     {
@@ -79,13 +82,13 @@
         StateHasChanged();
     }
 
-    public async Task DeleteCollection()
+    async Task DeleteCollection()
     {
         success = dbcontroller.DeleteCollection(DBName, CollectionName);
         if (success is true)
         {
             await Task.Delay(1100);
-            @inject NavigationManager navigationManager;
+
             navigationManager.NavigateTo(navigationManager.Uri, forceLoad: true);
         }
     }
