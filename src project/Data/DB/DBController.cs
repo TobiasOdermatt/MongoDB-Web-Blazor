@@ -1,13 +1,13 @@
-﻿using BlazorServerMyMongo.Data.Helpers;
+﻿using MongoDB_Web.Data.Helpers;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
-using static BlazorServerMyMongo.Data.Helpers.LogManager;
+using static MongoDB_Web.Data.Helpers.LogManager;
 using Newtonsoft.Json.Linq;
 
-namespace BlazorServerMyMongo.Data.DB
+namespace MongoDB_Web.Data.DB
 {
     public class DBController
     {

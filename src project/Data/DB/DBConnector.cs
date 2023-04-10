@@ -1,8 +1,8 @@
-﻿using BlazorServerMyMongo.Data.Helpers;
+﻿using MongoDB_Web.Data.Helpers;
 using MongoDB.Driver;
-using static BlazorServerMyMongo.Data.Helpers.LogManager;
+using static MongoDB_Web.Data.Helpers.LogManager;
 
-namespace BlazorServerMyMongo.Data.DB
+namespace MongoDB_Web.Data.DB
 {
     public class DBConnector
     {

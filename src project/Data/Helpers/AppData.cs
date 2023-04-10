@@ -1,4 +1,4 @@
-﻿namespace BlazorServerMyMongo.Data.Helpers
+﻿namespace MongoDB_Web.Data.Helpers
 {
     public class AppData
     {

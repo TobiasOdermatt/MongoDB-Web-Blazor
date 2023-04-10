@@ -1,5 +1,6 @@
-﻿using BlazorServerMyMongo.Objects;
-namespace BlazorServerMyMongo.Data.Helpers
+﻿using MongoDB_Web.Objects;
+
+namespace MongoDB_Web.Data.Helpers
 {
     public class LogManager
     {

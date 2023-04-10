@@ -1,9 +1,9 @@
-﻿using BlazorServerMyMongo.Data.Helpers;
-using BlazorServerMyMongo.Objects;
+﻿using MongoDB_Web.Data.Helpers;
+using MongoDB_Web.Objects;
 using System.Text.Json;
-using static BlazorServerMyMongo.Data.Helpers.LogManager;
+using static MongoDB_Web.Data.Helpers.LogManager;
 
-namespace BlazorServerMyMongo.Data.OTP
+namespace MongoDB_Web.Data.OTP
 {
     public class OTPFileManagement
     {

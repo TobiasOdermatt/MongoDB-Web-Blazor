@@ -1,11 +1,11 @@
-﻿using BlazorServerMyMongo.Data.DB;
-using BlazorServerMyMongo.Data.Helpers;
-using BlazorServerMyMongo.Data.OTP;
-using BlazorServerMyMongo.Objects;
+﻿using MongoDB_Web.Data.DB;
+using MongoDB_Web.Data.Helpers;
+using MongoDB_Web.Data.OTP;
+using MongoDB_Web.Objects;
 using Microsoft.AspNetCore.Mvc;
-using static BlazorServerMyMongo.Data.Helpers.LogManager;
+using static MongoDB_Web.Data.Helpers.LogManager;
 
-namespace BlazorServerMyMongo.Controllers
+namespace MongoDB_Web.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
