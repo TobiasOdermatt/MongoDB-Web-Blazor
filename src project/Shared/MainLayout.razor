@@ -3,18 +3,18 @@
 @using Data.Helpers
 @inject AppData appData
 
-<PageTitle>BlazorServerMyMongo</PageTitle>
+<PageTitle>MongoDB Web</PageTitle>
 
-<div class="page @GetCssClass()">
+<div class="page @getCssClass()">
     <div class="sidebar">
         <NavManager />
     </div>
     <main>
         <div class="top-row px-4 page">
             <h5 class="path-text">/</h5>
-            <select class="page" @onchange="ChangingTheme" style="float-right">
+            <select class="page" @onchange="changingTheme" style="float: right;">
                 @foreach(var theme in themes){
-                    <option selected="@IsSelectedTheme(theme)" value="@theme">@theme</option>
+                    <option selected="@isSelectedTheme(theme)" value="@theme">@theme</option>
                 }
                 </select>
         </div>
@@ -26,9 +26,9 @@
 </div>
 
 @code{
-    private string selectedTheme = "Light";
-    private List<string> themes = new List<string> { "Light", "Dark" };
-    private readonly string keyTheme = "theme";
+    string selectedTheme = "Light";
+    List<string> themes = new List<string> { "Light", "Dark" };
+    readonly string keyTheme = "theme";
 
     protected override void OnInitialized()
     {
@@ -36,17 +36,17 @@
             selectedTheme = appData.Theme;
     }
 
-    private string GetCssClass()
+    string getCssClass()
     {
         return selectedTheme == "Dark" ? String.Empty : "light-mode";
     }
 
-    private bool IsSelectedTheme(string theme)
+    bool isSelectedTheme(string theme)
     {
         return theme == selectedTheme;
     }
 
-    private async Task ChangingTheme(ChangeEventArgs e)
+    async Task changingTheme(ChangeEventArgs e)
     {
         selectedTheme = e.Value.ToString();
         await js.InvokeVoidAsync("setCookie", keyTheme, selectedTheme,360);

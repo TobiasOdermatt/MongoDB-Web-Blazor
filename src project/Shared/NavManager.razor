@@ -1,15 +1,15 @@
 ﻿<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">BlazorServerMyMongo</a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+        <a class="navbar-brand" href="">MongoDB Web</a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="toggleNavMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
     </div>
 </div>
 
-<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+<div class="@navMenuCssClass" @onclick="toggleNavMenu">
     <nav class="flex-column">
-        @if (Authenticated || (UseAuthorization == false))
+        @if (authenticated || (useAuthorization == false))
         {
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="Dashboard">
@@ -43,7 +43,7 @@
                 </NavLink>
             </div>
         }
-        @if (UseAuthorization)
+        @if (useAuthorization)
         {
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="api/Auth/Logout">
@@ -51,7 +51,7 @@
                 </NavLink>
             </div>
         }
-        @if (UseAuthorization && Authenticated)
+        @if (useAuthorization && authenticated)
         {
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="api/Auth/Logout">
@@ -71,63 +71,62 @@
         margin-right: 0.5em;
     }
 </style>
+@using Data.OTP
+@using static Data.Helpers.LogManager;
 @using BlazorServerMyMongo.Data.Helpers
-@using BlazorServerMyMongo.Data.OTP
-@using Data.OTP;
-@using static BlazorServerMyMongo.Data.Helpers.LogManager;
 
 @code {
-    private bool collapseNavMenu = true;
+    bool collapseNavMenu = true;
 
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+    string? navMenuCssClass => collapseNavMenu ? "collapse" : null;
 
-    private void ToggleNavMenu()
+    void toggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
     }
     
     [Inject]
     IHttpContextAccessor? HttpContextAccessor { get; set; }
-    public bool UseAuthorization { get; set; } = true;
-    public bool Authenticated { get; set; } = false;
-    public bool UseLogPage { get; set; } = false;
+    bool useAuthorization { get; set; } = true;
+    bool authenticated { get; set; } = false;
+    bool useLogPage { get; set; } = false;
     @inject NavigationManager NavigationManager;
     @inject ConfigManager ConfigManager;
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
-        LoadConfig();
-        if(UseAuthorization is false)
+        loadConfig();
+        if(useAuthorization is false)
         {
-            Authenticated = true;
+            authenticated = true;
             return;
         }
         if (HttpContextAccessor is null || HttpContextAccessor.HttpContext is null)
         {
-            Authenticated = false;
+            authenticated = false;
             return;
         }
 
         OTPAuthCookieManagement AuthManager = new(HttpContextAccessor.HttpContext);
         if (AuthManager.IsCookieValid())
         {
-            Authenticated = true;
+            authenticated = true;
             return;
         }
 
-        Authenticated = false;
+        authenticated = false;
         if (NavigationManager.Uri != NavigationManager.BaseUri + "Connect")
             NavigationManager.NavigateTo("/Connect");
     }
 
-    private void LoadConfig()
+    void loadConfig()
     {
-        UseAuthorization = ReadBoolFromConfig("UseAuthorization") ?? true;
-        UseLogPage = ReadBoolFromConfig("EnableLogPage") ?? false;
+        useAuthorization = readBoolFromConfig("useAuthorization") ?? true;
+        useLogPage = readBoolFromConfig("EnableLogPage") ?? false;
     }
 
-    private bool? ReadBoolFromConfig(string key)
+    bool? readBoolFromConfig(string key)
     {
         string? value = ConfigManager.ReadKey(key);
         if (Boolean.TryParse(value, out bool boolOutput))
