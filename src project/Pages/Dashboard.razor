@@ -2,12 +2,12 @@
 @page "/"
 @inject DBController DBController;
 
-@using BlazorServerMyMongo.Pages.Component.Dashboard;
-@using BlazorServerMyMongo.Data.DB
+@using MongoDB_Web.Pages.Component.Dashboard;
+@using MongoDB_Web.Data.DB
 <PageTitle>Dashboard</PageTitle>
 @code {
-    private BlazorServerMyMongo.Pages.Component.Dashboard.CreateDBModal? CreateDBModal { get; set; }
-    private BlazorServerMyMongo.Pages.Component.Dashboard.ImportDBModal? ImportDBModal { get; set; }
+    private MongoDB_Web.Pages.Component.Dashboard.CreateDBModal? CreateDBModal { get; set; }
+    private MongoDB_Web.Pages.Component.Dashboard.ImportDBModal? ImportDBModal { get; set; }
 }
 <CreateDBModal @ref="CreateDBModal"></CreateDBModal>
 <ImportDBModal @ref="ImportDBModal"></ImportDBModal>

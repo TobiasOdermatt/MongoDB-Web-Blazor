@@ -1,7 +1,7 @@
-using BlazorServerMyMongo.Data.DB;
-using BlazorServerMyMongo.Data.Helpers;
-using BlazorServerMyMongo.Data.OTP;
-using static BlazorServerMyMongo.Data.Helpers.LogManager;
+using MongoDB_Web.Data.DB;
+using MongoDB_Web.Data.Helpers;
+using MongoDB_Web.Data.OTP;
+using static MongoDB_Web.Data.Helpers.LogManager;
 
 var builder = WebApplication.CreateBuilder(args);
 

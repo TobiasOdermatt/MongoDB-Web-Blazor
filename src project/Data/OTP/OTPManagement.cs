@@ -1,7 +1,7 @@
-﻿using BlazorServerMyMongo.Objects;
+﻿using MongoDB_Web.Objects;
 using System.Text;
 
-namespace BlazorServerMyMongo.Data.OTP
+namespace MongoDB_Web.Data.OTP
 {
     public class OTPManagement
     {

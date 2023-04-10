@@ -1,4 +1,4 @@
-﻿namespace BlazorServerMyMongo.Objects
+﻿namespace MongoDB_Web.Objects
 {
     public class CleanUpFileObject
     {

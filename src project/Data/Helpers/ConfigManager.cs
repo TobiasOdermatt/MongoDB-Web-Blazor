@@ -1,6 +1,6 @@
-﻿using BlazorServerMyMongo.Data.DB;
+﻿using MongoDB_Web.Data.DB;
 
-namespace BlazorServerMyMongo.Data.Helpers
+namespace MongoDB_Web.Data.Helpers
 {
     public class ConfigManager
     {

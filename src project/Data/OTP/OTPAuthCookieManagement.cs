@@ -1,7 +1,7 @@
-﻿using BlazorServerMyMongo.Data.DB;
-using BlazorServerMyMongo.Objects;
+﻿using MongoDB_Web.Data.DB;
+using MongoDB_Web.Objects;
 
-namespace BlazorServerMyMongo.Data.OTP
+namespace MongoDB_Web.Data.OTP
 {
     public class OTPAuthCookieManagement
     {
