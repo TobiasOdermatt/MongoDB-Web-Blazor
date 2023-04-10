@@ -70,7 +70,7 @@ namespace MongoDB_Web.Data.OTP
             }
         }
 
-        private bool CheckCleanUpNeeded()
+        bool CheckCleanUpNeeded()
         {
             string CleanUpPath = otppath + "CleanUpFile.txt";
             if (File.Exists(CleanUpPath))
@@ -87,7 +87,7 @@ namespace MongoDB_Web.Data.OTP
             return false;
         }
 
-        private void UpdateCleanUpLog()
+        void UpdateCleanUpLog()
         {
             CleanUpFileObject data = new()
             {

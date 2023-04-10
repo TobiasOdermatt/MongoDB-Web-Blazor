@@ -15,8 +15,7 @@
                     Please retype the collection name <strong>"@CollectionName"</strong> to confirm
                 </p>
 
-
-                <input type="text" @bind="@ConfirmationText" @oninput="@((e) => { ConfirmationText=(string)e.Value;})" class="form-control page" placeholder="@CollectionName" />
+                <input type="text" @bind="@ConfirmationText" @oninput="@((e) => { ConfirmationText = e.Value?.ToString() ?? ""; })" class="form-control page" placeholder="@CollectionName" />
                 <br />
                 @if (success is true)
                 {
@@ -30,7 +29,7 @@
             <div class="modal-footer py-2">
                 @if (ConfirmationText == CollectionName)
                 {
-                    <button type="submit" class="btn btn-danger" @onclick="DeleteCollection"> Delete Collection</button>
+                    <button type="submit" class="btn btn-danger" @onclick="deleteCollection"> Delete Collection</button>
                 }
                 else
                 {
@@ -82,7 +81,7 @@
         StateHasChanged();
     }
 
-    async Task DeleteCollection()
+    async Task deleteCollection()
     {
         success = dbcontroller.DeleteCollection(DBName, CollectionName);
         if (success is true)

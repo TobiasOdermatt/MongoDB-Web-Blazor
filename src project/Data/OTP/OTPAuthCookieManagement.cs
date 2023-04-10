@@ -1,5 +1,6 @@
 ﻿using MongoDB_Web.Data.DB;
 using MongoDB_Web.Objects;
+using System.Net;
 
 namespace MongoDB_Web.Data.OTP
 {
@@ -33,7 +34,13 @@ namespace MongoDB_Web.Data.OTP
                 return false;
 
             (string username, string password) = otpManager.GetUserData(decryptedData);
-            DBConnector connector = new(username, password, uuid, Context.Request.HttpContext.Connection.RemoteIpAddress.ToString());
+
+            IPAddress? iPAddress = Context.Request.HttpContext.Connection.RemoteIpAddress;
+            if (iPAddress == null)
+                return false;
+
+            string ipOfRequest = iPAddress.ToString();
+            DBConnector connector = new(username, password, uuid, ipOfRequest);
             return connector.Client != null;
         }
 

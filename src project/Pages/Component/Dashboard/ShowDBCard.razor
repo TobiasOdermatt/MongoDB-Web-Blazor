@@ -1,15 +1,15 @@
 ﻿@using Data.Helpers
 @code {
-    private MongoDB_Web.Pages.Component.Dashboard.DeleteDBModal? DeleteDBModal { get; set; }
+    MongoDB_Web.Pages.Component.Dashboard.DeleteDBModal? deleteDBModal { get; set; }
 }
-<DeleteDBModal @ref="DeleteDBModal" DBName="@name" />
+<DeleteDBModal @ref="deleteDBModal" DBName="@name" />
 <div class="col-lg-4 col-xl-3 col-md-5 mb-8 col-sm-12 py-3">
     <div class="shadow card h-100 rounded cardbox">
         <div class="card-header py-1">
             <div class="card-title">
             <h4 class="title-card">@name</h4>
                 </div>
-            <button type="button" @onclick="() => DeleteDBModal.Open()" class=" btn-close deleteicon blacktowhitetheme" aria-label="Close"></button>
+            <button type="button" @onclick="() => deleteDBModal?.Open()" class=" btn-close deleteicon blacktowhitetheme" aria-label="Close"></button>
             </div>
         <div class="card-body">
             <p class="card-text">Size on disk: @sizeOnDisk KB <br /> 
@@ -29,7 +29,7 @@
                     <li><a class="dropdown-item element-background" href="#">Details</a></li>
                     <li><a class="dropdown-item element-background" href="/Download/@name">Download DB</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger" href="" @onclick="() => DeleteDBModal.Open()" @onclick:preventDefault>Delete Database</a></li>
+                    <li><a class="dropdown-item text-danger" href="" @onclick="() => deleteDBModal?.Open()" @onclick:preventDefault>Delete Database</a></li>
                 </ul>
             </div>
             <a href="CollectionManager/@name" class="btn btn-primary">Open</a>

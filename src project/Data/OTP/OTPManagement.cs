@@ -30,7 +30,7 @@ namespace MongoDB_Web.Data.OTP
             return (dataArray[0], dataArray[1]);
         }
 
-        private static string xorBinary(string bin1, string bin2)
+        static string xorBinary(string bin1, string bin2)
         {
             int len = Math.Max(bin1.Length, bin2.Length);
             string res = "";
@@ -49,7 +49,7 @@ namespace MongoDB_Web.Data.OTP
             return res;
         }
 
-        private string binaryStringToText(string binary)
+        string binaryStringToText(string binary)
         {
             string[] binaryArray = binary.Split(' ');
             string text = "";

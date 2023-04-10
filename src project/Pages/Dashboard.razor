@@ -6,11 +6,11 @@
 @using MongoDB_Web.Data.DB
 <PageTitle>Dashboard</PageTitle>
 @code {
-    private MongoDB_Web.Pages.Component.Dashboard.CreateDBModal? CreateDBModal { get; set; }
-    private MongoDB_Web.Pages.Component.Dashboard.ImportDBModal? ImportDBModal { get; set; }
+     MongoDB_Web.Pages.Component.Dashboard.CreateDBModal? createDBModal { get; set; }
+     MongoDB_Web.Pages.Component.Dashboard.ImportDBModal? importDBModal { get; set; }
 }
-<CreateDBModal @ref="CreateDBModal"></CreateDBModal>
-<ImportDBModal @ref="ImportDBModal"></ImportDBModal>
+<CreateDBModal @ref="createDBModal"></CreateDBModal>
+<ImportDBModal @ref="importDBModal"></ImportDBModal>
 <div class="top-div">
     <h2>List of all databases</h2>
     @{
@@ -19,8 +19,8 @@
         int CollectionAmount = 0;
     }
     <p class="second-text-color resultText">@count Databases found</p>
-    <button type="button" @onclick="() => CreateDBModal.Open()" class="btn btn-primary navbutton">Create database</button>
-    <button type="button" @onclick="() => ImportDBModal.Open()" class="btn btn-primary navbutton">Import database</button>
+    <button type="button" @onclick="() => createDBModal?.Open()" class="btn btn-primary navbutton">Create database</button>
+    <button type="button" @onclick="() => importDBModal?.Open()" class="btn btn-primary navbutton">Import database</button>
 </div>
 <br />
 <div class="row bottom-div">
