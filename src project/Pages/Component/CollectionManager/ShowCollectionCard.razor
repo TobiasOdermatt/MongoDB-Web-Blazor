@@ -1,14 +1,14 @@
 ﻿@code {
-    MongoDB_Web.Pages.Component.CollectionManager.DeleteCollectionModal? DeleteCollectionModal { get; set; }
+    MongoDB_Web.Pages.Component.CollectionManager.DeleteCollectionModal? deleteCollectionModal { get; set; }
 }
-<DeleteCollectionModal @ref="DeleteCollectionModal" DBName="@DBName" CollectionName="@name" />
+<DeleteCollectionModal @ref="deleteCollectionModal" DBName="@DBName" CollectionName="@name" />
 <div class="col-lg-4 col-xl-3 col-md-5 mb-8 col-sm-12 py-3">
     <div class="shadow card h-100 rounded cardbox">
         <div class="card-header py-1">
             <div class="card-title">
                 <h4 class="title-card">@name</h4>
             </div>
-            <button type="button" @onclick="() => DeleteCollectionModal.Open()" class=" btn-close deleteicon blacktowhitetheme" aria-label="Close"></button>
+            <button type="button" @onclick="() => deleteCollectionModal?.Open()" class=" btn-close deleteicon blacktowhitetheme" aria-label="Close"></button>
         </div>
         <div class="card-body">
             <p class="card-text">
@@ -25,7 +25,7 @@
                     <li><a class="dropdown-item element-background" href="#">Upload .JSON</a></li>
                     <li><a class="dropdown-item element-background" href="/Download/@DBName/@name/">Download Collection</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger" href="" @onclick="() => DeleteCollectionModal.Open()" @onclick:preventDefault>Delete Collection</a></li>
+                    <li><a class="dropdown-item text-danger" href="" @onclick="() => deleteCollectionModal?.Open()" @onclick:preventDefault>Delete Collection</a></li>
                 </ul>
             </div>
             <a href="/CollectionViewer/@DBName/@name" class="btn btn-primary">Open</a>

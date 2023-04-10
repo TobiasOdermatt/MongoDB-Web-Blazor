@@ -11,15 +11,17 @@
     <button @onclick="() => changeLogType(LogType.Warning)" class="infoBox col-2 page">Warning @countOfWarning</button>
     <button @onclick="() => changeLogType(LogType.Info)" class="infoBox col-2 page">Information @countOfInfo</button>
     <select @onchange="changeDate" class="col-3 page infoBox">
-        @foreach (DateTime date in availableLogDates)
-    {
-        bool newlog = date.Date.Year == DateTime.Now.Year & date.Date.Month == DateTime.Now.Month;
-        <option value="@date" selected="@newlog.ToString()" class="page">@date.Year/@date.Month</option>
+        @{
+            if(availableLogDates != null)
+                foreach (DateTime date in availableLogDates)
+            {
+                bool newlog = date.Date.Year == DateTime.Now.Year & date.Date.Month == DateTime.Now.Month;
+                <option value="@date" selected="@newlog.ToString()" class="page">@date.Year/@date.Month</option>
+            }
     }
 </select>
 <br />
     <table class="table page sortable">
-        <div class="searchable-header"></div>
         <thead>
             <tr>
                 <th scope="col">Date</th>
@@ -48,7 +50,7 @@
 
     DateTime currentDate { get; set; }
 
-    List<DateTime> availableLogDates { get; set; }
+    List<DateTime>? availableLogDates { get; set; }
 
     LogType currentType { get; set; } = LogType.All;
 
@@ -59,7 +61,7 @@
         Warning,
         Error
     }
-    
+
     void changeLogType(LogType SelectedType)
     {
         currentType = SelectedType;
@@ -68,8 +70,15 @@
 
     void changeDate(ChangeEventArgs e)
     {
-        currentDate = DateTime.Parse(e.Value.ToString());
-        refresh();
+        if (e.Value != null)
+        {
+            string dateString = e.Value?.ToString() ?? string.Empty;
+            if (!string.IsNullOrEmpty(dateString))
+            {
+                currentDate = DateTime.Parse(dateString);
+                refresh();
+            }
+        }
     }
     
     protected override void OnInitialized()

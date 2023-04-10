@@ -95,32 +95,38 @@
 
     void checkboxChanged(ChangeEventArgs e, string collection)
     {
-        var isChecked = (bool)e.Value;
-        if (isChecked)
+        if (e.Value != null)
         {
-            checkedCollectionsNames.Add(collection);
-        }
-        else
-        {
-            checkedCollectionsNames.Remove(collection);
+            var isChecked = (bool)e.Value;
+            if (isChecked)
+            {
+                checkedCollectionsNames.Add(collection);
+            }
+            else
+            {
+                checkedCollectionsNames.Remove(collection);
+            }
         }
         StateHasChanged();
     }
 
     void selectAllChanged(ChangeEventArgs e)
     {
-        var isChecked = (bool)e.Value;
-        if (isChecked)
+        if (e.Value != null)
         {
-            selectAllText = "Unselect all";
-            checkedCollectionsNames = collectionsNames.ToList();
+            var isChecked = (bool)e.Value;
+            if (isChecked)
+            {
+                selectAllText = "Unselect all";
+                checkedCollectionsNames = collectionsNames.ToList();
+            }
+            else
+            {
+                selectAllText = "Select all";
+                checkedCollectionsNames.Clear();
+            }
+            StateHasChanged();
         }
-        else
-        {
-            selectAllText = "Select all";
-            checkedCollectionsNames.Clear();
-        }
-        StateHasChanged();
     }
 
     public async void Open()
@@ -141,7 +147,7 @@
         StateHasChanged();
     }
 
-    public IJSObjectReference uploadedFile;
+    public IJSObjectReference? uploadedFile;
 
     async Task validateFile()
     {

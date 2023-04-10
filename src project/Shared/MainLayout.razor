@@ -48,7 +48,8 @@
 
     async Task changingTheme(ChangeEventArgs e)
     {
-        selectedTheme = e.Value.ToString();
-        await js.InvokeVoidAsync("setCookie", keyTheme, selectedTheme,360);
+        string selectedTheme = e.Value?.ToString() ?? string.Empty;
+        if (!string.IsNullOrEmpty(selectedTheme))
+            await js.InvokeVoidAsync("setCookie", keyTheme, selectedTheme,360);
     }
 }

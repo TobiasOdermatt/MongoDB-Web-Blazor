@@ -57,7 +57,7 @@
         StateHasChanged();
     }
     
-    async Task createDB()
+    void createDB()
     {
         if(!string.IsNullOrEmpty(newDBName) && newDBName != "")
         {

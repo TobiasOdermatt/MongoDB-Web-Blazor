@@ -42,11 +42,9 @@ namespace MongoDB_Web.Data.Helpers
                 {
                     foreach (var collection in collectionData)
                     {
-                        if(checkedCollectionNames.Contains(collection.Key))
-                        {
-                            Console.WriteLine(collection.Key);
-                            dBController.UploadJSON(dbName, collection.Key, collection.Value);
-                        }
+                        if (checkedCollectionNames.Contains(collection.Key))
+                            if (collection.Value != null)
+                                dBController.UploadJSON(dbName, collection.Key, collection.Value);
                     }
                 }
             }

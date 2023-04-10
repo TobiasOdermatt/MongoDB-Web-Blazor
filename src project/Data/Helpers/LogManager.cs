@@ -47,7 +47,7 @@ namespace MongoDB_Web.Data.Helpers
         }
 
         //Create the Exception File for the error
-        private void CreateExceptionLogFile(string message, Exception exception)
+        void CreateExceptionLogFile(string message, Exception exception)
         {
             string logMessage = DateTime.Now.ToString("HH:mm:ss") + " - " + message + exception.Message + " - " + exception.StackTrace;
             using (StreamWriter sw = new(path + "Exception.txt", true))
@@ -91,7 +91,7 @@ namespace MongoDB_Web.Data.Helpers
         }
 
         //Create Directoy if the Dir not exists.
-        private void CreateDirectory()
+        void CreateDirectory()
         {
             try
             {

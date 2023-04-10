@@ -10,9 +10,9 @@
                 <p>Warning this action can not be undone.<br />
                     This will permanently delete the database. <br /> 
                     Please retype the database name <strong>"@DBName"</strong> to confirm</p>
-                    
 
-                <input type="text" @bind="@ConfirmationText" @oninput="@((e) => { ConfirmationText=(string)e.Value;})" class="form-control page" placeholder="@DBName" />
+
+                <input type="text" @bind="@ConfirmationText" @oninput="@((e) => { ConfirmationText = e.Value?.ToString() ?? ""; })" class="form-control page" placeholder="@DBName" />
                 <br />
                 @if(success is true){
                 <p class="text-success">Database was deleted successfully</p>
