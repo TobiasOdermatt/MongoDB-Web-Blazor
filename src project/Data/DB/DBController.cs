@@ -6,6 +6,7 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using static MongoDB_Web.Data.Helpers.LogManager;
 using Newtonsoft.Json.Linq;
+using Bogus;
 
 namespace MongoDB_Web.Data.DB
 {
@@ -152,10 +153,6 @@ namespace MongoDB_Web.Data.DB
                     foreach (var document in cursor.Current)
                     {
                         JObject docAsJson = JObject.Parse(document.ToJson(jsonWriterSettings));
-
-                        if (docAsJson.ContainsKey("_id"))
-                            docAsJson.Remove("_id");
-
                         collectionArray.Add(docAsJson);
                     }
                 }
@@ -202,10 +199,6 @@ namespace MongoDB_Web.Data.DB
                         foreach (var document in cursor.Current)
                         {
                             JObject docAsJson = JObject.Parse(document.ToJson(jsonWriterSettings));
-
-                            if (docAsJson.ContainsKey("_id"))
-                                docAsJson.Remove("_id");
-
                             collectionArray.Add(docAsJson);
                         }
                     }
@@ -336,7 +329,7 @@ namespace MongoDB_Web.Data.DB
             return result;
         }
 
-        public bool UploadJSON(string dbName, string collectionName, JToken json)
+        public bool UploadJSON(string dbName, string collectionName, JToken json, bool adaptOid)
         {
             if (Client is null)
                 return false;
@@ -346,20 +339,28 @@ namespace MongoDB_Web.Data.DB
                 var db = Client.GetDatabase(dbName);
                 var collection = db.GetCollection<BsonDocument>(collectionName);
 
-                // Prüfen, ob es sich bei 'json' um ein Array handelt
                 if (json is JArray jsonArray)
                 {
-                    // Durchlaufen Sie jedes Element im Array und fügen Sie es als BsonDocument ein
                     foreach (JObject jsonObject in jsonArray)
                     {
+                        if (!adaptOid && jsonObject.ContainsKey("_id"))
+                        {
+                            jsonObject.Remove("_id");
+                        }
+
                         var document = BsonDocument.Parse(jsonObject.ToString());
                         collection.InsertOne(document);
                     }
                 }
                 else
                 {
-                    // Wenn es kein Array ist, verarbeiten Sie es wie bisher 
-                    var document = BsonDocument.Parse(json.ToString());
+                    JObject jobject = JObject.Parse(json.ToString());
+                    if (!adaptOid && jobject.ContainsKey("_id"))
+                    {
+                        jobject.Remove("_id");
+                    }
+
+                    var document = BsonDocument.Parse(jobject.ToString());
                     collection.InsertOne(document);
                 }
 
@@ -371,7 +372,42 @@ namespace MongoDB_Web.Data.DB
             }
         }
 
-        public byte[] ConvertToBson(List<string> documents)
+        public async Task GenerateRandomData(string dbName, int collectionsCount, int totalDocuments)
+        {
+            if (Client is null)
+                return;
+
+            var faker = new Faker();
+
+            var db = Client.GetDatabase(dbName);
+
+            int documentsPerCollection = totalDocuments / collectionsCount;
+
+            for (int i = 1; i <= collectionsCount; i++)
+            {
+                var collectionName = $"collection-{i}";
+                var collection = db.GetCollection<BsonDocument>(collectionName);
+
+                for (int j = 0; j < documentsPerCollection; j++)
+                {
+                    var randomData = new BsonDocument
+                {
+                    { "name", faker.Name.FullName()},
+                    { "email", faker.Internet.Email()},
+                    { "address", faker.Address.StreetAddress()},
+                    { "phone", faker.Phone.PhoneNumber()},
+                    { "company", faker.Company.CompanyName()},
+                    { "jobTitle", faker.Name.JobTitle()},
+                };
+
+                    await collection.InsertOneAsync(randomData);
+                }
+
+                Console.WriteLine($"{collectionName} mit {documentsPerCollection} Dokumenten erstellt.");
+            }
+        }
+
+    public byte[] ConvertToBson(List<string> documents)
         {
             var bsonDocuments = new List<BsonDocument>();
 

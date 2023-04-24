@@ -1,21 +1,22 @@
 ﻿using MongoDB_Web.Data.DB;
 using Newtonsoft.Json.Linq;
 using System.Text;
+using ThirdParty.Json.LitJson;
 
 namespace MongoDB_Web.Data.Helpers
 {
     public class ImportManager
     {
-        public static JObject? JsonData;
+        static JObject? jsonData;
 
         public static (string, List<string>) ProcessDBImportAsync(byte[] fileContent)
         {
             string jsonString = Encoding.UTF8.GetString(fileContent);
-            JsonData = JObject.Parse(jsonString);
+            jsonData = JObject.Parse(jsonString);
             List<string> collectionsNames = new List<string>();
             string dbName = "";
 
-            foreach (var db in JsonData)
+            foreach (var db in jsonData)
             {
                 dbName = db.Key;
 
@@ -31,20 +32,25 @@ namespace MongoDB_Web.Data.Helpers
             return (dbName, collectionsNames);
         }
 
-        public static bool ImportCollectionsAsync(string dbName, List<string> checkedCollectionNames, DBController dBController)
+        public static bool ImportCollectionsAsync(string dbName, List<string> checkedCollectionNames, Dictionary<string, string> collectionNameChanges,bool adoptOid, DBController dBController)
         {
-            if (JsonData is null)
+            if (jsonData is null)
                 return false;
 
-            foreach (var db in JsonData)
+            foreach (var db in jsonData)
             {
                 if (db.Value is JObject collectionData)
                 {
                     foreach (var collection in collectionData)
                     {
                         if (checkedCollectionNames.Contains(collection.Key))
+                        {
                             if (collection.Value != null)
-                                dBController.UploadJSON(dbName, collection.Key, collection.Value);
+                            {
+                                string collectionNameToImport = collectionNameChanges.ContainsKey(collection.Key) ? collectionNameChanges[collection.Key] : collection.Key;
+                                dBController.UploadJSON(dbName, collectionNameToImport, collection.Value, adoptOid);
+                            }
+                        }
                     }
                 }
             }

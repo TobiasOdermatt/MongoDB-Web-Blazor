@@ -8,7 +8,7 @@
     <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content modal-dialog">
             <div class="modal-header">
-                <h5 class="modal-title py-2">Import Database</h5>
+                <h5 class="modal-title py-2">Import database or collection</h5>
                 <button type="button" class="btn-close blacktowhitetheme" data-dismiss="modal" @onclick="() => Close()" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -45,17 +45,28 @@
                             {
                                 <li class="list-group-item page checkbox-area">
                                     <input type="checkbox" id="@collection" value="@collection" checked="@checkedCollectionsNames.Contains(collection)" @onchange="e => checkboxChanged(e, collection)" />
-                                    <label for="@collection">@collection</label>
+                                    <label for="@collection" class="editable-label">
+                                        <input class="editable-input page" type="text" value="@collection" @onchange="@((e) => updateChangedName(collection, e))" id="@collection" />
+                                    </label>
                                 </li>
                             }
                         </ul>
+                        <br />
+                        <label for="importSettings">Import settings:</label>
+                        <ul class="list-group page">
+                            <li class="list-group-item page">
+                                    <input type="checkbox" @onchange="@((e) => adoptOidChange(e))" id="adoptOldObjectId"/>
+                                    <label for="adoptOldObjectId">Adopt old object id</label>
+                            </li>
+                        </ul>
+
                     }
                     <input type="submit" class="btn btn-primary btn-upload float-start" value="Select another .json file" @onclick="chooseAnother">
                     <input type="submit" class="btn btn-primary btn-upload" value="Upload to mongoDB" @onclick="uploadDB">
                 </div>
-                <div class="mb-4">
+                <div class="mb-3 py-2">
                     <br />
-                    <span class="text-danger mt-2" style="display:@errorDisplay">@errorMessage</span>
+                    <span class="@messageTyp mt-4" style="display:@messageDisplay">@message</span>
                 </div>
             </div>
             <div class="modal-footer py-2">
@@ -76,8 +87,9 @@
     string modalClass = "";
     bool showBackdrop = false;
 
-    string errorDisplay = "none;";
-    string errorMessage = "";
+    string messageDisplay = "none;";
+    string message = "";
+    string messageTyp = "";
     string uploadSectionDisplay = "block;";
     string detailSectionDisplay = "none;";
 
@@ -86,11 +98,38 @@
 
     List<string> collectionsNames = new List<string>();
     List<string> checkedCollectionsNames = new List<string>();
+
+    Dictionary<string, string> collectionNameChanges = new Dictionary<string, string>();
+    bool adoptOid;
     string selectAllText = "Select all";
 
     protected override void OnInitialized()
     {
         checkedCollectionsNames = collectionsNames.ToList();
+    }
+
+    void adoptOidChange(ChangeEventArgs e)
+    {
+        if(e.Value != null)
+        {
+            adoptOid = (bool)e.Value;
+        }
+    }
+
+    void updateChangedName(string originalCollectionName, ChangeEventArgs changedCollectionName)
+    {
+        if (changedCollectionName.Value == null) { return; }
+        string changedCollectionNameString  = changedCollectionName.Value.ToString() ?? string.Empty;
+        if(string.IsNullOrEmpty(changedCollectionNameString)){ return; }
+
+        if (collectionNameChanges.ContainsKey(originalCollectionName))
+        {
+            collectionNameChanges[originalCollectionName] = changedCollectionNameString;
+        }
+        else
+        {
+            collectionNameChanges.Add(originalCollectionName, changedCollectionNameString);
+        }
     }
 
     void checkboxChanged(ChangeEventArgs e, string collection)
@@ -159,8 +198,7 @@
 
             if (fileExtension != ".json")
             {
-                errorDisplay = "block;";
-                errorMessage = "Please upload a .json file";
+                displayError("Please upload a .json file");
             }
 
             // Get the file content as a byte array
@@ -173,8 +211,7 @@
 
             if (DBController.CheckIfDBExist(dbName))
             {
-                errorDisplay = "block";
-                errorMessage = "Warning Database: '" + dbName + "' already exists.";
+                displayWarning("Attention: The database: '" + dbName + "' currently exists. Modify the collection names if they are the same as the existing ones.");
             }
             StateHasChanged();
 
@@ -185,38 +222,62 @@
         }
     }
 
-    void uploadDB()
+    async void uploadDB()
     {
         if (!string.IsNullOrEmpty(dbName))
         {
             if (DBController.CheckIfDBExist(dbName))
             {
-                errorDisplay = "block;";
-                errorMessage = "Database: '" + dbName + "' already exists.";
+
             }
             else
             {
 
-                bool success = ImportManager.ImportCollectionsAsync(dbName, checkedCollectionsNames, DBController);
+                bool success = ImportManager.ImportCollectionsAsync(dbName, checkedCollectionsNames, collectionNameChanges, adoptOid, DBController);
 
                 if (success)
                 {
-                    errorDisplay = "none;";
-                    Close();
+                    displaySuccess("Database: '" + dbName + "' was successfully imported.");
+                    await Task.Delay(1100);
+                    @inject NavigationManager navigationManager;
+                    navigationManager.NavigateTo(navigationManager.Uri, forceLoad: true);
                 }
                 else
                 {
-                    errorDisplay = "block;";
-                    errorMessage = "There was an error while importing the database.";
+                    displayError("There was an error while importing the database.");
                 }
             }
         }
         else
         {
-            errorDisplay = "block;";
-            errorMessage = "Database name cannot be blank.";
+            displayError("database name cannot be blank.");
         }
 
+        StateHasChanged();
+    }
+
+    void displayError(string _message)
+    {
+        messageTyp = "text-danger";
+        displayMessage(_message);
+    }
+
+    void displayWarning(string _message)
+    {
+        messageTyp = "text-warning";
+        displayMessage(_message);
+    }
+
+    void displaySuccess(string _message)
+    {
+        messageTyp = "text-success";
+        displayMessage(_message);
+    }
+
+    void displayMessage(string _message)
+    {
+        messageDisplay = "block;";
+        message = _message;
         StateHasChanged();
     }
 
@@ -224,7 +285,7 @@
     {
         uploadSectionDisplay = "block;";
         detailSectionDisplay = "none;";
-        errorDisplay = "none;";
+        messageDisplay = "none;";
 
         StateHasChanged();
     }
