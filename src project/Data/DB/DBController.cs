@@ -44,6 +44,7 @@ namespace MongoDB_Web.Data.DB
             catch (Exception e)
             {
                 LogManager _ = new(LogType.Error, "User: " + Username + " has failed to load Dashboard ", e);
+                return null;
             }
 
             return dbList;

@@ -50,7 +50,7 @@ namespace MongoDB_Web.Data.Helpers
         void CreateExceptionLogFile(string message, Exception exception)
         {
             string logMessage = DateTime.Now.ToString("HH:mm:ss") + " - " + message + exception.Message + " - " + exception.StackTrace;
-            using (StreamWriter sw = new(path + "Exception.txt", true))
+            using (StreamWriter sw = new StreamWriter(new FileStream(path + "Exception.txt", FileMode.Append, FileAccess.Write, FileShare.ReadWrite)))
             {
                 sw.WriteLine(logMessage);
                 sw.Flush();
@@ -77,12 +77,14 @@ namespace MongoDB_Web.Data.Helpers
         {
             try
             {
-                StreamWriter file = new(path + type + ".txt", true);
-                string logline = DateTime.Now.ToString("dd") + " | " + DateTime.Now.ToString("HH:mm:ss ") + "|[" + type.ToString() + "]|" + "| " + line;
-                file.WriteLine(logline);
-                Console.WriteLine(logline);
-                file.Flush();
-                file.Close();
+                using (StreamWriter file = new StreamWriter(new FileStream(path + type + ".txt", FileMode.Append, FileAccess.Write, FileShare.ReadWrite)))
+                {
+                    string logline = DateTime.Now.ToString("dd") + " | " + DateTime.Now.ToString("HH:mm:ss ") + "|[" + type.ToString() + "]|" + "| " + line;
+                    file.WriteLine(logline);
+                    Console.WriteLine(logline);
+                    file.Flush();
+                    file.Close();
+                }
             }
             catch (Exception e)
             {
@@ -124,7 +126,7 @@ namespace MongoDB_Web.Data.Helpers
             {
                 if (File.Exists(filePath))
                 {
-                    StreamReader file = new(filePath);
+                    using StreamReader file = new(filePath);
                     string? line;
                     while ((line = file.ReadLine()) != null)
                     {
@@ -175,7 +177,7 @@ namespace MongoDB_Web.Data.Helpers
             {
                 if (File.Exists(path))
                 {
-                    StreamReader file = new(path);
+                    using StreamReader file = new(path);
                     string? line;
                     while ((line = file.ReadLine()) != null)
                     {
@@ -212,7 +214,7 @@ namespace MongoDB_Web.Data.Helpers
         public List<LogObject> ReadLogFiles(string type, DateTime date)
         {
             List<LogObject> logObjects = new();
-            string currentpath = $"{currentDirectory}\\Logs\\{date.ToString("yyyy")}\\{date.ToString("MM")}\\";
+            string currentpath = $"{currentDirectory}\\Logs\\{date:yyyy}\\{date:MM}\\";
 
             try
             {

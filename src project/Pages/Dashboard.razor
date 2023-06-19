@@ -1,6 +1,7 @@
 ﻿@page "/Dashboard"
 @page "/"
 @inject DBController DBController;
+@inject NavigationManager navigationmanager;
 
 @using MongoDB_Web.Pages.Component.Dashboard;
 @using MongoDB_Web.Data.DB
@@ -37,7 +38,13 @@
 @code {
     List<MongoDB.Bson.BsonDocument>? listAllDBs()
     {
-        return DBController.ListAllDatabases();
+        var dbs = DBController.ListAllDatabases();
+        if(dbs == null)
+        {
+            navigationmanager.NavigateTo("api/Auth/Logout", true);
+            StateHasChanged();
+        }
+        return dbs;
     }
 
     int getCollectionAmount(string dbname)

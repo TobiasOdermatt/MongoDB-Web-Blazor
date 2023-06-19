@@ -41,7 +41,15 @@ namespace MongoDB_Web.Data.DB
             {
                 MongoClient mongoClient = new(connectionString);
                 DBController dBController = new(mongoClient, uuid, username, ipOfRequest);
-                return mongoClient;
+
+                if (dBController.ListAllDatabases() == null)
+                {
+                    throw new Exception("Failed to list all databases");
+                }
+                else
+                {
+                    return mongoClient;
+                }
             }
             catch (Exception e)
             {
