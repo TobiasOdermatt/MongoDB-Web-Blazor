@@ -11,6 +11,7 @@ namespace MongoDB_Web.Data.DB
         static string? dbPort;
         static string? dbRules;
         static string? customString;
+        static string? allowedIp;
         static bool useAuthorization = true;
 
         //Loads the connection values from config.json
@@ -24,6 +25,7 @@ namespace MongoDB_Web.Data.DB
             dbPort = config["DBPort"];
             dbRules = config["DBRule"];
             customString = config["CustomConnectionString"];
+            allowedIp = config["allowedIp"];
         }
 
         public DBConnector(string username, string password, string uuid, string ipOfRequest)
@@ -33,6 +35,12 @@ namespace MongoDB_Web.Data.DB
 
         public MongoClient? DbConnect(string username, string password, string uuid, string ipOfRequest)
         {
+            if (allowedIp != "*" && allowedIp != ipOfRequest)
+            {
+                _ = new LogManager(LogType.Error, "User; " + username + " has failed to connect to the DB, IP: " + ipOfRequest + " is not allowed");
+                return null;
+            }
+
             string connectionString = getConnectionString(username, password);
             if (DBController.UUID == uuid && DBController.IPofRequest == ipOfRequest)
                 return DBController.Client;
@@ -53,7 +61,7 @@ namespace MongoDB_Web.Data.DB
             }
             catch (Exception e)
             {
-                LogManager _ = new(LogType.Error, "User; " + username + " has failed to connect to the DB ", e);
+                _ = new LogManager(LogType.Error, "User; " + username + " has failed to connect to the DB ", e);
                 return null;
             }
         }
