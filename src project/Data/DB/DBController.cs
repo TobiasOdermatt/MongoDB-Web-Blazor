@@ -183,7 +183,7 @@ namespace MongoDB_Web.Data.DB
                     }
                 }
 
-                await writer.WriteAsync("]}}}}");
+                await writer.WriteAsync("]}}");
             }
             catch (Exception e)
             {
