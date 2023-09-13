@@ -6,7 +6,7 @@ namespace MongoDB_Web.Data.Helpers
     {
 
         static string currentDirectory = $"{Directory.GetCurrentDirectory()}";
-        readonly string path = $"{currentDirectory}\\Logs\\{DateTime.Now.ToString("yyyy")}\\{DateTime.Now.ToString("MM")}\\";
+        readonly string path = $"{currentDirectory}\\Logs\\{DateTime.Now:yyyy}\\{DateTime.Now:MM}\\";
 
         /// <summary>
         /// Write a new log
@@ -181,7 +181,7 @@ namespace MongoDB_Web.Data.Helpers
                     string? line;
                     while ((line = file.ReadLine()) != null)
                     {
-                        //If line start with # then skip
+                        //If line is a comment then skip
                         if (line.StartsWith("#"))
                             continue;
                         
@@ -190,10 +190,10 @@ namespace MongoDB_Web.Data.Helpers
                         string[] time = log[1].Split(" ");
                         string[] type = time[1].Split("]|");
                         string[] message = log[1].Split("||");
-                        
+
                         LogObject logObject = new()
                         {
-                            Created = dateTime.Add(new TimeSpan(Int32.Parse(time[0].Split(":")[0]), Int32.Parse(time[0].Split(":")[1]), Int32.Parse(time[0].Split(":")[2]))),
+                            Created = new DateTime(dateTime.Year, dateTime.Month, Int32.Parse(date[0]), Int32.Parse(time[0].Split(":")[0]), Int32.Parse(time[0].Split(":")[1]), Int32.Parse(time[0].Split(":")[2])),
                             Type = type[0].Replace("|[", ""),
                             Message = message[1]
                         };

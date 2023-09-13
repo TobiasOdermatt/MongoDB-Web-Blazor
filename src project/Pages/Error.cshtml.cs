@@ -12,7 +12,7 @@ namespace MongoDB_Web.Pages
 
         public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
 
-        readonly ILogger<ErrorModel> _logger;
+        private readonly ILogger<ErrorModel> _logger;
 
         public ErrorModel(ILogger<ErrorModel> logger)
         {
