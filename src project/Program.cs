@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.ResponseCompression;
 using MongoDB_Web.Data.DB;
 using MongoDB_Web.Data.Helpers;
+using MongoDB_Web.Data.Hubs;
 using MongoDB_Web.Data.OTP;
 using static MongoDB_Web.Data.Helpers.LogManager;
 
@@ -9,6 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient();
+builder.Services.AddSignalR();
 
 IConfiguration config = new ConfigurationBuilder()
                     .AddJsonFile("config.json", optional: false, reloadOnChange: false).Build();
@@ -23,6 +27,7 @@ LogManager log = new(LogType.Info, "Server started");
 
 var app = builder.Build();
 
+
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
@@ -34,14 +39,12 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseStaticFiles();
-
 app.UseRouting();
 
-app.UseEndpoints(endpoints =>
-{
-    endpoints.MapControllers();
-    endpoints.MapBlazorHub();
-    endpoints.MapFallbackToPage("/_Host");
-});
+app.MapRazorPages();
+app.MapBlazorHub();
+app.MapControllers();
+app.MapHub<ProgressHub>("/progressHub");
+app.MapFallbackToPage("/_Host");
 
 app.Run();

@@ -1,16 +1,4 @@
-﻿function downloadFile(fileName, fileData, contentType) {
-    const blob = new Blob([fileData], { type: contentType });
-    const url = window.URL.createObjectURL(blob);
-
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    a.click();
-
-    window.URL.revokeObjectURL(url);
-}
-
-function addToLocalStorage(key, value) { localStorage[key] = value; }
+﻿function addToLocalStorage(key, value) { localStorage[key] = value; }
 function readLocalStorage(key) { return localStorage[key]; }
 
 function setCookie(name, value, days) {
@@ -33,3 +21,51 @@ function getCookie(name) {
     }
     return null;
 }
+
+function downloadURI (uri, name) {
+    const link = document.createElement("a");
+    link.download = name;
+    link.href = uri;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+async function startConnection() {
+    const connection = new signalR.HubConnectionBuilder().withUrl("/progressHub").build();
+
+    connection.on("ReceiveProgressDatabase", function (totalCollections, processedCollections, progress) {
+        const progressBar = document.getElementById("fileProgress");
+        if (progressBar) {
+            progressBar.value = progress;
+        }
+
+        const progressText = document.getElementById("status-text");
+        if (progressText) {
+            progressText.innerHTML = processedCollections + " / " + totalCollections + " collections";
+        }
+    });
+
+    connection.on("ReceiveProgressCollection", function (totalDocuments, processedDocuments, progress) {
+        const progressBar = document.getElementById("fileProgress");
+        if (progressBar) {
+            progressBar.value = progress;
+        }
+
+        const progressText = document.getElementById("status-text");
+        if (progressText) {
+            progressText.innerHTML = processedDocuments + " / " + totalDocuments + " documents";
+        }
+    });
+
+    try {
+        await connection.start();
+        console.log("SignalR Connected.");
+    } catch (err) {
+        console.log(err);
+        setTimeout(startConnection, 5000);
+    }
+}
+
+startConnection();
+

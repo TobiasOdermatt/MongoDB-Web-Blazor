@@ -7,6 +7,9 @@ using MongoDB.Driver;
 using static MongoDB_Web.Data.Helpers.LogManager;
 using Newtonsoft.Json.Linq;
 using Bogus;
+using Microsoft.AspNetCore.SignalR;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using MongoDB_Web.Data.Hubs;
 
 namespace MongoDB_Web.Data.DB
 {
@@ -16,6 +19,13 @@ namespace MongoDB_Web.Data.DB
         public static string? UUID;
         public static string? Username;
         public static string? IPofRequest;
+
+        private readonly IHubContext<ProgressHub> _hubContext;
+
+        public DBController(IHubContext<ProgressHub> hubContext)
+        {
+            _hubContext = hubContext;
+        }
 
         public DBController() { }
 
@@ -131,41 +141,53 @@ namespace MongoDB_Web.Data.DB
             }
         }
 
-        public JObject? GetCollectionExport(string dbName, string collectionName)
+        public async Task StreamCollectionExport(StreamWriter writer, string dbName, string collectionName)
         {
             if (Client is null)
-                return null;
+                return;
 
             try
             {
                 var db = Client.GetDatabase(dbName);
-                var collections = db.ListCollections().ToList();
-                JObject result = new JObject();
-                JObject databaseObject = new JObject();
-
                 var collectionData = db.GetCollection<BsonDocument>(collectionName);
                 var filter = new BsonDocument();
-                var cursor = collectionData.Find(filter).ToCursor();
-                JArray collectionArray = new JArray();
-                var jsonWriterSettings = new JsonWriterSettings { OutputMode = JsonOutputMode.CanonicalExtendedJson };
 
-                while (cursor.MoveNext())
+                await writer.WriteAsync($"{{\"{dbName}\":{{\"{collectionName}\": [");
+
+                var totalDocuments = await collectionData.CountDocumentsAsync(filter);
+                var processedDocuments = 0;
+
+                using (var cursor = collectionData.Find(filter).ToCursor())
                 {
-                    foreach (var document in cursor.Current)
+                    var jsonWriterSettings = new JsonWriterSettings { OutputMode = JsonOutputMode.CanonicalExtendedJson };
+                    bool isFirstDocument = true;
+
+                    while (await cursor.MoveNextAsync())
                     {
-                        JObject docAsJson = JObject.Parse(document.ToJson(jsonWriterSettings));
-                        collectionArray.Add(docAsJson);
+                        foreach (var document in cursor.Current)
+                        {
+                            processedDocuments++;
+                            var progress = (int)((double)processedDocuments / totalDocuments * 100);
+                            await _hubContext.Clients.All.SendAsync("ReceiveProgressCollection", totalDocuments, processedDocuments, progress);
+
+                            if (!isFirstDocument)
+                            {
+                                await writer.WriteAsync(",");
+                            }
+
+                            var documentJson = document.ToJson(jsonWriterSettings);
+                            await writer.WriteAsync(documentJson);
+
+                            isFirstDocument = false;
+                        }
                     }
                 }
-                databaseObject.Add(collectionName, collectionArray);
 
-                result.Add(dbName, databaseObject);
-                return result;
+                await writer.WriteAsync("]}}}}");
             }
             catch (Exception e)
             {
-                LogManager _ = new(LogType.Error, "User: " + Username + " has failed to load the Collection: " + collectionName + " from DB: " + dbName, e);
-                return null;
+                LogManager _ = new LogManager(LogType.Error, $"User: {Username} has failed to load the Collection: {collectionName} from DB: {dbName}", e);
             }
         }
 
@@ -174,47 +196,76 @@ namespace MongoDB_Web.Data.DB
         /// </summary>
         /// <param name="dbName">Database Name</param>
         /// <returns>Returns JObject?</returns>
-        public JObject? GetAllCollectionExport(string dbName)
+        public async Task StreamAllCollectionExport(StreamWriter writer, string dbName)
         {
             if (Client is null)
-                return null;
+
+                return;
 
             try
             {
                 var db = Client.GetDatabase(dbName);
                 var collections = db.ListCollections().ToList();
-                JObject result = new JObject();
-                JObject databaseObject = new JObject();
+
+                int totalCollections = collections.Count;
+                int processedCollections = 0;
+
+                await writer.WriteAsync("{\"" + dbName + "\":{");
+
+                var jsonWriterSettings = new JsonWriterSettings { OutputMode = JsonOutputMode.CanonicalExtendedJson };
+                bool isFirstCollection = true;
 
                 foreach (var collection in collections)
                 {
+                    processedCollections++;
+
+                    var progress = (int)((double)processedCollections / totalCollections * 100);
+                    await _hubContext.Clients.All.SendAsync("ReceiveProgressDatabase", totalCollections, processedCollections, progress);
+
+                    if (!isFirstCollection)
+                    {
+                        await writer.WriteAsync(",");
+                    }
+
                     var collectionName = collection["name"].AsString;
+                    await writer.WriteAsync($"\"{collectionName}\": [");
+
                     var collectionData = db.GetCollection<BsonDocument>(collectionName);
                     var filter = new BsonDocument();
-                    var cursor = collectionData.Find(filter).ToCursor();
-                    JArray collectionArray = new JArray();
-                    var jsonWriterSettings = new JsonWriterSettings { OutputMode = JsonOutputMode.CanonicalExtendedJson };
 
-                    while (cursor.MoveNext())
+                    using (var cursor = collectionData.Find(filter).ToCursor())
                     {
-                        foreach (var document in cursor.Current)
+                        bool isFirstDocument = true;
+                        while (await cursor.MoveNextAsync())
                         {
-                            JObject docAsJson = JObject.Parse(document.ToJson(jsonWriterSettings));
-                            collectionArray.Add(docAsJson);
+                            foreach (var document in cursor.Current)
+                            {
+                                if (!isFirstDocument)
+                                {
+                                    await writer.WriteAsync(",");
+                                }
+
+                                var documentJson = document.ToJson(jsonWriterSettings);
+                                await writer.WriteAsync(documentJson);
+
+                                isFirstDocument = false;
+                            }
                         }
                     }
-                    databaseObject.Add(collectionName, collectionArray);
+
+                    await writer.WriteAsync("]");
+                    isFirstCollection = false;
                 }
 
-                result.Add(dbName, databaseObject);
-                return result;
+                await writer.WriteAsync("}}");
             }
             catch (Exception e)
             {
-                LogManager _ = new(LogType.Error, "User: " + Username + " has failed to load the All Collections from DB: " + dbName, e);
-                return null;
+                LogManager _ = new LogManager(LogType.Error, "User: " + Username + " has failed to load the All Collections from DB: " + dbName, e);
             }
         }
+
+
 
         /// <summary>
         /// Delete a specific Collection from a Database
@@ -403,8 +454,6 @@ namespace MongoDB_Web.Data.DB
 
                     await collection.InsertOneAsync(randomData);
                 }
-
-                Console.WriteLine($"{collectionName} mit {documentsPerCollection} Dokumenten erstellt.");
             }
         }
 
