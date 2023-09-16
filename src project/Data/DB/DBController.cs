@@ -10,6 +10,7 @@ using Bogus;
 using Microsoft.AspNetCore.SignalR;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using MongoDB_Web.Data.Hubs;
+using System;
 
 namespace MongoDB_Web.Data.DB
 {
@@ -141,7 +142,7 @@ namespace MongoDB_Web.Data.DB
             }
         }
 
-        public async Task StreamCollectionExport(StreamWriter writer, string dbName, string collectionName)
+        public async Task StreamCollectionExport(StreamWriter writer, string dbName, string collectionName, Guid guid)
         {
             if (Client is null)
                 return;
@@ -168,7 +169,7 @@ namespace MongoDB_Web.Data.DB
                         {
                             processedDocuments++;
                             var progress = (int)((double)processedDocuments / totalDocuments * 100);
-                            await _hubContext.Clients.All.SendAsync("ReceiveProgressCollection", totalDocuments, processedDocuments, progress);
+                            await _hubContext.Clients.All.SendAsync("ReceiveProgressCollection", totalDocuments, processedDocuments, progress, guid.ToString());
 
                             if (!isFirstDocument)
                             {
@@ -196,7 +197,7 @@ namespace MongoDB_Web.Data.DB
         /// </summary>
         /// <param name="dbName">Database Name</param>
         /// <returns>Returns JObject?</returns>
-        public async Task StreamAllCollectionExport(StreamWriter writer, string dbName)
+        public async Task StreamAllCollectionExport(StreamWriter writer, string dbName, Guid guid)
         {
             if (Client is null)
 
@@ -220,7 +221,7 @@ namespace MongoDB_Web.Data.DB
                     processedCollections++;
 
                     var progress = (int)((double)processedCollections / totalCollections * 100);
-                    await _hubContext.Clients.All.SendAsync("ReceiveProgressDatabase", totalCollections, processedCollections, progress);
+                    await _hubContext.Clients.All.SendAsync("ReceiveProgressDatabase", totalCollections, processedCollections, progress, guid.ToString());
 
                     if (!isFirstCollection)
                     {
