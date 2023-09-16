@@ -14,23 +14,23 @@ using System;
 
 namespace MongoDB_Web.Data.DB
 {
-    public class DBController
+    public class DatabaseOperations
     {
         public static MongoClient? Client;
         public static string? UUID;
         public static string? Username;
         public static string? IPofRequest;
 
-        private readonly IHubContext<ProgressHub> _hubContext;
+        private readonly IHubContext<ProgressHub>? _hubContext;
 
-        public DBController(IHubContext<ProgressHub> hubContext)
+        public DatabaseOperations(IHubContext<ProgressHub> hubContext)
         {
             _hubContext = hubContext;
         }
 
-        public DBController() { }
+        public DatabaseOperations() { }
 
-        public DBController(MongoClient db, string uuid, string username, string ipOfRequest)
+        public DatabaseOperations(MongoClient db, string uuid, string username, string ipOfRequest)
         {
             Client = db;
             UUID = uuid;
@@ -169,7 +169,7 @@ namespace MongoDB_Web.Data.DB
                         {
                             processedDocuments++;
                             var progress = (int)((double)processedDocuments / totalDocuments * 100);
-                            await _hubContext.Clients.All.SendAsync("ReceiveProgressCollection", totalDocuments, processedDocuments, progress, guid.ToString());
+                            await _hubContext!.Clients.All.SendAsync("ReceiveProgressCollection", totalDocuments, processedDocuments, progress, guid.ToString());
 
                             if (!isFirstDocument)
                             {
@@ -221,7 +221,7 @@ namespace MongoDB_Web.Data.DB
                     processedCollections++;
 
                     var progress = (int)((double)processedCollections / totalCollections * 100);
-                    await _hubContext.Clients.All.SendAsync("ReceiveProgressDatabase", totalCollections, processedCollections, progress, guid.ToString());
+                    await _hubContext!.Clients.All.SendAsync("ReceiveProgressDatabase", totalCollections, processedCollections, progress, guid.ToString());
 
                     if (!isFirstCollection)
                     {

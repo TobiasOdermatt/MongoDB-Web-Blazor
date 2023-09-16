@@ -49,7 +49,7 @@
     string ConfirmationText { get; set; } = "";
     bool? success = null;
     
-    @inject DBController dbcontroller
+    @inject DatabaseOperations dbcontroller
     Guid Guid = Guid.NewGuid();
     string ModalDisplay = "none;";
     string ModalClass = "";

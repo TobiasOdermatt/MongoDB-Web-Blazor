@@ -32,7 +32,7 @@ namespace MongoDB_Web.Data.Helpers
             return (dbName, collectionsNames);
         }
 
-        public static bool ImportCollectionsAsync(string dbName, List<string> checkedCollectionNames, Dictionary<string, string> collectionNameChanges,bool adoptOid, DBController dBController)
+        public static bool ImportCollectionsAsync(string dbName, List<string> checkedCollectionNames, Dictionary<string, string> collectionNameChanges,bool adoptOid, DatabaseOperations dBController)
         {
             if (jsonData is null)
                 return false;

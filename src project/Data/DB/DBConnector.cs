@@ -42,13 +42,13 @@ namespace MongoDB_Web.Data.DB
             }
 
             string connectionString = getConnectionString(username, password);
-            if (DBController.UUID == uuid && DBController.IPofRequest == ipOfRequest)
-                return DBController.Client;
+            if (DatabaseOperations.UUID == uuid && DatabaseOperations.IPofRequest == ipOfRequest)
+                return DatabaseOperations.Client;
 
             try
             {
                 MongoClient mongoClient = new(connectionString);
-                DBController dBController = new(mongoClient, uuid, username, ipOfRequest);
+                DatabaseOperations dBController = new(mongoClient, uuid, username, ipOfRequest);
 
                 if (dBController.ListAllDatabases() == null)
                 {

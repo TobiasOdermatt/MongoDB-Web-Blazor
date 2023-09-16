@@ -14,7 +14,7 @@
     IHttpContextAccessor? HttpContextAccessor { get; set; }
 
     [Parameter]
-    public string dbName{ get; set; }
+    public string? dbName{ get; set; }
 
     [Parameter]
     public string? collectionName { get; set; }
@@ -29,7 +29,7 @@
     bool? success = null;
     string? type;
     
-    @inject DBController dbcontroller
+    @inject DatabaseOperations dbcontroller
     Guid guid = Guid.NewGuid();
     string ModalDisplay = "none;";
     string ModalClass = "";
@@ -87,7 +87,7 @@
         }
         catch (IOException e)
         {
-            LogManager _ = new(LogManager.LogType.Error, "Streamwriter already in use");
+            LogManager _ = new(LogManager.LogType.Error, "Streamwriter already in use",e);
         }
     }
 

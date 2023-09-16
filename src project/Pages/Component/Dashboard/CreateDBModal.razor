@@ -1,5 +1,5 @@
 ﻿@using MongoDB_Web.Data.DB
-@inject DBController dbcontroller;
+@inject DatabaseOperations dbcontroller;
 
 <div class="modal @ModalClass" tabindex="-1" role="dialog" style="display:@ModalDisplay">
     <div class="modal-dialog" role="document">
@@ -63,7 +63,7 @@
         {
             if(!string.IsNullOrEmpty(newCollectionName) && newCollectionName != "")
             {
-            @inject DBController dbController;
+            @inject DatabaseOperations dbController;
                 dbController.CreateCollection(newdbName, newCollectionName);
             }
             @inject NavigationManager navigationManager;
