@@ -1,4 +1,4 @@
-﻿@page "/CollectionViewer/{dbname}/{collectionname}"
+﻿@page "/CollectionViewer/{dbName}/{collectionname}"
 @using Data.DB;
 @using MongoDB.Bson;
 @using MongoDB.Bson.IO;
@@ -25,7 +25,7 @@
 </div>
 @code {
     [Parameter]
-    public string? DBname { get; set; }
+    public string? dbName { get; set; }
     [Parameter]
     public string? Collectionname { get; set; }
 
@@ -33,10 +33,10 @@
 
     List<string>? listCollection()
     {
-        if (DBname is null || Collectionname is null)
+        if (dbName is null || Collectionname is null)
             return null;
 
-        return DBController.GetCollection(DBname, Collectionname);
+        return DBController.GetCollection(dbName, Collectionname);
     }
 
     protected override Task OnInitializedAsync()
