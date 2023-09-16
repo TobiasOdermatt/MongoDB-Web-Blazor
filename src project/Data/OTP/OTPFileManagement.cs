@@ -8,7 +8,7 @@ namespace MongoDB_Web.Data.OTP
     public class OTPFileManagement
     {
         string otppath = $"{Directory.GetCurrentDirectory()}" + @"\OTP\";
-        string userFilePath = $"{Directory.GetCurrentDirectory()}" + @"\Output\";
+        string userStoragePath = $"{Directory.GetCurrentDirectory()}" + @"\UserStorage\";
         const int CLEANUP_FRESHRATE_IN_DAY = 1;
         const int DELETE_OTP_IN_DAYS = 10;
 
@@ -42,7 +42,7 @@ namespace MongoDB_Web.Data.OTP
                 return;
 
             string path = otppath + uuid + ".txt";
-            string userpath = userFilePath + uuid;
+            string userpath = userStoragePath + uuid;
             if (File.Exists(path))
                 File.Delete(path);
 
@@ -72,7 +72,7 @@ namespace MongoDB_Web.Data.OTP
                         File.Delete(fileName);
                         log = new(LogType.Info, "The OTP file " + fileName + " was deleted because it was older than " + DELETE_OTP_IN_DAYS + " days");
                         string uuid = Path.GetFileNameWithoutExtension(fileName);
-                        string userpath = userFilePath + uuid;
+                        string userpath = userStoragePath + uuid;
                         if (Directory.Exists(userpath))
                             DeleteDirectory(userpath);
                     }

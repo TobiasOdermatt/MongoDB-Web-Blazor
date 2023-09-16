@@ -8,7 +8,7 @@ namespace MongoDB_Web.Controllers
     [ApiController]
     public class FileController : ControllerBase
     {
-        string userFilePath = $"{Directory.GetCurrentDirectory()}" + @"\Output\";
+        string userStoragePath = $"{Directory.GetCurrentDirectory()}" + @"\UserStorage\";
 
         [HttpGet("DownloadFile")]
         public IActionResult DownloadFile(string fileName)
@@ -20,12 +20,11 @@ namespace MongoDB_Web.Controllers
 
             string? userUUID = AuthManager.GetUUID();
         
-            string fullPath = Path.Combine(userFilePath, userUUID+"/"+fileName);
+            string fullPath = Path.Combine(userStoragePath, userUUID+"/"+"downloads"+"/"+fileName);
 
             if (!System.IO.File.Exists(fullPath))
-            {
                 return NotFound("File not found");
-            }
+
 
             var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read);
 
