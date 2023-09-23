@@ -1,0 +1,107 @@
+﻿@using Controllers
+@using Newtonsoft.Json;
+@using Data.OTP;
+@using Data.Helpers
+@inject NavigationManager navigationManager;
+@if (ShowBackdrop)
+{
+    <div class="modal-backdrop fade @ModalClass" style="display: @ModalDisplay"></div>
+}
+
+@code {
+    [Parameter]
+    public string? dbName { get; set; }
+
+    [Parameter]
+    public string? collectionName { get; set; }
+
+    string newEntityName { get; set; } = "";
+
+    string ConfirmationText { get; set; } = "";
+    bool? success = null;
+    string? type;
+
+    @inject DBController dbcontroller
+    Guid guid = Guid.NewGuid();
+    string ModalDisplay = "none;";
+    string ModalClass = "";
+    bool ShowBackdrop = false;
+
+    protected override Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrEmpty(collectionName))
+        {
+            type = "collection";    
+        }
+        else
+        {
+            type = "database";
+        }
+        return base.OnParametersSetAsync();    
+    }
+
+    public async void Open()
+    {
+        ModalDisplay = "block;";
+        await Task.Delay(100);
+        ModalClass = "Show";
+        ShowBackdrop = true;
+        StateHasChanged();
+    }
+
+    public async void Close()
+    {
+        ModalClass = "";
+        await Task.Delay(100);
+        ModalDisplay = "none";
+        ShowBackdrop = false;
+        StateHasChanged();
+    }
+
+    private async Task renameEntity()
+    {
+        if(type == "collection")
+        {
+            success = dbcontroller.RenameCollection(dbName, collectionName, newEntityName);
+        }
+        else
+        {
+            success = dbcontroller.RenameDatabase(dbName, newEntityName);
+        }
+        if (success is true)
+        {
+            await Task.Delay(1100);
+
+            navigationManager.NavigateTo(navigationManager.Uri, forceLoad: true);
+        }
+    }
+}
+
+<div class="modal @ModalClass" tabindex="-1" role="dialog" style="display: @ModalDisplay">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content modal-dialog">
+            <div class="modal-header">
+                <h5 class="modal-title py-2">Rename @type</h5>
+                <button type="button" class="btn-close blacktowhitetheme" data-dismiss="modal" @onclick="() => Close()" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p> Please type the new @type name</p>
+                <input type="text" @bind="@newEntityName" class="form-control page" placeholder="@type name" required />
+                <br />
+                @if (success is true)
+                {
+                    <p class="text-success">@type was renamed successfully</p>
+                }
+                else if (success is false)
+                {
+                    <p class="text-danger">Ooops, something went wrong</p>
+                }
+            </div>
+            <div class="modal-footer py-2">
+                <button type="submit" class="btn btn-success" @onclick="renameEntity"> Rename</button>
+
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="() => Close()">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
