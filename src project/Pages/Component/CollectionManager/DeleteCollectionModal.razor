@@ -1,5 +1,5 @@
 ﻿@inject NavigationManager navigationManager;
-@using MongoDB_Web.Data.DB
+@using Controllers
 
 <div class="modal @ModalClass" tabindex="-1" role="dialog" style="display:@ModalDisplay">
     <div class="modal-dialog" role="document">
@@ -57,7 +57,7 @@
     string ConfirmationText { get; set; } = "";
     bool? success = null;
 
-    @inject DatabaseOperations dbcontroller
+    @inject DBController dbcontroller
     Guid Guid = Guid.NewGuid();
     string ModalDisplay = "none;";
     string ModalClass = "";

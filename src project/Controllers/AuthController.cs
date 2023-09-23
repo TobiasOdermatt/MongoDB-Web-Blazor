@@ -35,6 +35,8 @@ namespace MongoDB_Web.Controllers
             var uuid = Guid.NewGuid().ToString();
 
             DBConnector connector = new(username, password, uuid, Request.HttpContext.Connection.RemoteIpAddress.ToString());
+            if(connector.ListAllDatabasesTest() == false)
+                return NoContent(); 
 
             if (connector.Client != null)
             {

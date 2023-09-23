@@ -8,29 +8,28 @@ using static MongoDB_Web.Data.Helpers.LogManager;
 using Newtonsoft.Json.Linq;
 using Bogus;
 using Microsoft.AspNetCore.SignalR;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 using MongoDB_Web.Data.Hubs;
 using System;
 
-namespace MongoDB_Web.Data.DB
+namespace MongoDB_Web.Controllers
 {
-    public class DatabaseOperations
+    public class DBController
     {
         public static MongoClient? Client;
         public static string? UUID;
         public static string? Username;
         public static string? IPofRequest;
 
-        private readonly IHubContext<ProgressHub>? _hubContext;
+        public readonly IHubContext<ProgressHub>? _hubContext;
 
-        public DatabaseOperations(IHubContext<ProgressHub> hubContext)
+        public DBController(IHubContext<ProgressHub> hubContext)
         {
             _hubContext = hubContext;
         }
 
-        public DatabaseOperations() { }
+        public DBController() { }
 
-        public DatabaseOperations(MongoClient db, string uuid, string username, string ipOfRequest)
+        public DBController(MongoClient db, string uuid, string username, string ipOfRequest)
         {
             Client = db;
             UUID = uuid;
@@ -44,13 +43,10 @@ namespace MongoDB_Web.Data.DB
         /// <returns>Returns List<BsonDocument></returns>
         public List<BsonDocument>? ListAllDatabases()
         {
-            if (Client is null)
-                return null;
-
             List<BsonDocument>? dbList = new();
             try
             {
-                dbList = Client.ListDatabases().ToList();
+                dbList = Client?.ListDatabases().ToList();
             }
             catch (Exception e)
             {
@@ -60,6 +56,120 @@ namespace MongoDB_Web.Data.DB
 
             return dbList;
         }
+
+        /// <summary>
+        /// Get all available attributes from a collection in a database.
+        /// </summary>
+        /// <param name="dbName">Database Name</param>
+        /// <param name="collectionName">Collection Name</param>
+        /// <returns>List of attribute names</returns>
+        public List<string> GetCollectionAttributes(string? dbName, string? collectionName)
+        {
+            if (Client is null || dbName is null || collectionName is null)
+                return new List<string>();
+
+            List<string> keyList = new();
+
+            try
+            {
+                var db = Client.GetDatabase(dbName);
+                var collection = db.GetCollection<BsonDocument>(collectionName);
+
+                var filter = new BsonDocument();
+                var cursor = collection.Find(filter).Limit(1);
+
+                if (cursor.Any())
+                {
+                    BsonDocument document = cursor.First();
+                    foreach (var element in document.Elements)
+                    {
+                        keyList.Add(element.Name);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                LogManager _ = new(LogType.Error, $"User: {Username} has failed to load attributes from Collection: {collectionName} in DB: {dbName}", e);
+                return new List<string>();
+            }
+            return keyList;
+        }
+
+        /// <summary>
+        /// Rename a collection in a database.
+        /// </summary>
+        /// <param name="dbName">Database Name</param>
+        /// <param name="oldCollectionName">Old Collection Name</param>
+        /// <param name="newCollectionName">New Collection Name</param>
+        /// <returns>True if the collection was renamed successfully, false otherwise</returns>
+        public bool RenameCollection(string? dbName, string? oldCollectionName, string? newCollectionName)
+        {
+            if (Client is null || dbName is null || oldCollectionName is null || newCollectionName is null)
+                return false;
+
+            try
+            {
+                var db = Client.GetDatabase(dbName);
+                var oldCollection = db.GetCollection<BsonDocument>(oldCollectionName);
+                var newCollection = db.GetCollection<BsonDocument>(newCollectionName);
+                var cursor = oldCollection.FindSync(FilterDefinition<BsonDocument>.Empty);
+                foreach (var document in cursor.ToEnumerable())
+                {
+                    newCollection.InsertOne(document);
+                }
+                db.DropCollection(oldCollectionName);
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                LogManager _ = new(LogType.Error, $"User: {Username} failed to rename Collection: {oldCollectionName} to {newCollectionName} in DB: {dbName}", e);
+                return false;
+            }
+        }
+
+
+        /// <summary>
+        /// Rename a database.
+        /// </summary>
+        /// <param name="oldDbName">Old Database Name</param>
+        /// <param name="newDbName">New Database Name</param>
+        /// <returns>True if the database was renamed successfully, false otherwise</returns>
+        public bool RenameDatabase(string? oldDbName, string? newDbName)
+        {
+            if (Client is null || oldDbName is null || newDbName is null)
+                return false;
+
+            try
+            {
+                var newClient = new MongoClient(Client.Settings);
+                var oldDb = Client.GetDatabase(oldDbName);
+                var newDb = newClient.GetDatabase(newDbName);
+                var collections = oldDb.ListCollectionNames().ToList();
+
+                foreach (var collectionName in collections)
+                {
+                    var oldCollection = oldDb.GetCollection<BsonDocument>(collectionName);
+                    var newCollection = newDb.GetCollection<BsonDocument>(collectionName);
+
+                    var cursor = oldCollection.FindSync(FilterDefinition<BsonDocument>.Empty);
+                    foreach (var document in cursor.ToEnumerable())
+                    {
+                        newCollection.InsertOne(document);
+                    }
+                }
+
+                Client.DropDatabase(oldDbName);
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                LogManager _ = new(LogType.Error, "Error while renaming the database from " + oldDbName + " to " + newDbName, e);
+                return false;
+            }
+        }
+
 
         /// <summary>
         /// List every Collection from specific database
@@ -140,6 +250,120 @@ namespace MongoDB_Web.Data.DB
                 LogManager _ = new(LogType.Error, "User: " + Username + " has failed to load the Collection: " + collectionName + " from DB: " + dbName, e);
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Delete a specific Collection from a Database
+        /// </summary>
+        /// <param name="dbName">Database Name</param>
+        /// <returns>bool will be returned, if success</returns>
+        public bool DeleteDB(string dbName)
+        {
+            if (Client is null)
+                return false;
+
+            bool result;
+            try
+            {
+                Client.DropDatabase(dbName);
+                LogManager _ = new(LogType.Info, "User: " + Username + " has deleted the DB: " + dbName);
+                result = true;
+            }
+            catch (Exception e)
+            {
+                LogManager _ = new(LogType.Error, "User: " + Username + " has failed to delete the DB: " + dbName + " " + e);
+                result = false;
+            }
+
+            return result;
+        }
+
+        ///<summary>
+        ///Check if datbase already exist
+        /// </summary>
+        /// <param name="dbName">Database name</param>
+        /// <returns>bool will be returned</returns>
+        public bool CheckIfDBExist(string dbName)
+        {
+            if (Client is null)
+                return false;
+
+            bool result;
+            try
+            {
+                var filter = new BsonDocument("name", dbName);
+                var options = new ListDatabasesOptions { Filter = filter };
+                var list = Client.ListDatabases(options).ToList();
+                if (list.Count == 0)
+                {
+                    result = false;
+                }
+                else
+                {
+                    result = true;
+                }
+            }
+            catch (Exception e)
+            {
+                LogManager _ = new(LogType.Error, "User: " + Username + " has failed to check if DB: " + dbName + " exist", e);
+                result = false;
+            }
+
+            return result;
+        }
+        /// <summary>
+        /// Create a new Collection
+        /// </summary>
+        /// <param name="dbName">Database name</param>
+        /// <param name="collectionName">Collection name</param>
+        /// <returns>bool will be returned, if success</returns>
+        public bool CreateCollection(string dbName, string collectionName)
+        {
+            if (Client is null)
+                return false;
+
+            bool result;
+            try
+            {
+                Client.GetDatabase(dbName).CreateCollection(collectionName);
+                LogManager _ = new(LogType.Info, "User: " + Username + " has created the Collection: " + collectionName + " in DB: " + dbName);
+                result = true;
+            }
+            catch (Exception e)
+            {
+                LogManager _ = new(LogType.Error, "User: " + Username + " has failed by creating Collection " + collectionName + " in DB: " + dbName, e);
+                result = false;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Delete a specific Collection
+        /// </summary>
+        /// <param name="dbName">Database Name</param>
+        /// <param name="collectionName">Collection Name</param>
+        /// <returns>bool will be returned, if success</returns>
+        public bool DeleteCollection(string dbName, string collectionName)
+        {
+            if (Client is null)
+                return false;
+
+            bool result;
+            try
+            {
+                var db = Client.GetDatabase(dbName);
+                db.DropCollection(collectionName);
+                LogManager _ = new(LogType.Info, "User: " + Username + " has deleted the Collection: " + collectionName + " in DB: " + dbName);
+                result = true;
+            }
+            catch (Exception e)
+            {
+                LogManager _ = new(LogType.Error, "User: " + Username + " has failed by deleting Collection" + collectionName + " in DB: " + dbName, e);
+                result = false;
+            }
+
+            return result;
         }
 
         public async Task StreamCollectionExport(StreamWriter writer, string dbName, string collectionName, Guid guid)
@@ -266,122 +490,6 @@ namespace MongoDB_Web.Data.DB
             }
         }
 
-
-
-        /// <summary>
-        /// Delete a specific Collection from a Database
-        /// </summary>
-        /// <param name="dbName">Database Name</param>
-        /// <returns>bool will be returned, if success</returns>
-        public bool DeleteDB(string dbName)
-        {
-            if (Client is null)
-                return false;
-
-            bool result;
-            try
-            {
-                Client.DropDatabase(dbName);
-                LogManager _ = new(LogType.Info, "User: " + Username + " has deleted the DB: " + dbName);
-                result = true;
-            }
-            catch (Exception e)
-            {
-                LogManager _ = new(LogType.Error, "User: " + Username + " has failed to delete the DB: " + dbName + " " + e);
-                result = false;
-            }
-
-            return result;
-        }
-
-        ///<summary>
-        ///Check if datbase already exist
-        /// </summary>
-        /// <param name="dbName">Database name</param>
-        /// <returns>bool will be returned</returns>
-        public bool CheckIfDBExist(string dbName)
-        {
-            if (Client is null)
-                return false;
-
-            bool result;
-            try
-            {
-                var filter = new BsonDocument("name", dbName);
-                var options = new ListDatabasesOptions { Filter = filter };
-                var list = Client.ListDatabases(options).ToList();
-                if (list.Count == 0)
-                {
-                    result = false;
-                }
-                else
-                {
-                    result = true;
-                }
-            }
-            catch (Exception e)
-            {
-                LogManager _ = new(LogType.Error, "User: " + Username + " has failed to check if DB: " + dbName + " exist", e);
-                result = false;
-            }
-
-            return result;
-        }
-        /// <summary>
-        /// Create a new Collection
-        /// </summary>
-        /// <param name="dbName">Database name</param>
-        /// <param name="collectionName">Collection name</param>
-        /// <returns>bool will be returned, if success</returns>
-        public bool CreateCollection(string dbName, string collectionName)
-        {
-            if (Client is null)
-                return false;
-
-            bool result;
-            try
-            {
-                Client.GetDatabase(dbName).CreateCollection(collectionName);
-                LogManager _ = new(LogType.Info, "User: " + Username + " has created the Collection: " + collectionName + " in DB: " + dbName);
-                result = true;
-            }
-            catch (Exception e)
-            {
-                LogManager _ = new(LogType.Error, "User: " + Username + " has failed by creating Collection " + collectionName + " in DB: " + dbName, e);
-                result = false;
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        /// Delete a specific Collection
-        /// </summary>
-        /// <param name="dbName">Database Name</param>
-        /// <param name="collectionName">Collection Name</param>
-        /// <returns>bool will be returned, if success</returns>
-        public bool DeleteCollection(string dbName, string collectionName)
-        {
-            if (Client is null)
-                return false;
-
-            bool result;
-            try
-            {
-                var db = Client.GetDatabase(dbName);
-                db.DropCollection(collectionName);
-                LogManager _ = new(LogType.Info, "User: " + Username + " has deleted the Collection: " + collectionName + " in DB: " + dbName);
-                result = true;
-            }
-            catch (Exception e)
-            {
-                LogManager _ = new(LogType.Error, "User: " + Username + " has failed by deleting Collection" + collectionName + " in DB: " + dbName, e);
-                result = false;
-            }
-
-            return result;
-        }
-
         public bool UploadJSON(string dbName, string collectionName, JToken json, bool adaptOid)
         {
             if (Client is null)
@@ -458,7 +566,7 @@ namespace MongoDB_Web.Data.DB
             }
         }
 
-    public byte[] ConvertToBson(List<string> documents)
+        public byte[] ConvertToBson(List<string> documents)
         {
             var bsonDocuments = new List<BsonDocument>();
 

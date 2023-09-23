@@ -1,10 +1,10 @@
 ﻿@page "/Dashboard"
 @page "/"
-@inject DatabaseOperations DBController;
+@inject DBController DBController;
 @inject NavigationManager navigationmanager;
 
 @using MongoDB_Web.Pages.Component.Dashboard;
-@using MongoDB_Web.Data.DB
+@using Controllers
 <PageTitle>Dashboard</PageTitle>
 @code {
      MongoDB_Web.Pages.Component.Dashboard.CreateDBModal? createDBModal { get; set; }

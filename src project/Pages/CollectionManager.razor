@@ -1,7 +1,7 @@
 ﻿@page "/CollectionManager/{dbName}"
-@using MongoDB_Web.Data.DB;
+@using Controllers
 @using MongoDB_Web.Pages.Component.CollectionManager
-@inject DatabaseOperations DBController;
+@inject DBController DBController;
 @inject IJSRuntime JS
 
 <h2>List of all collections</h2>

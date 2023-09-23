@@ -1,8 +1,8 @@
 ﻿@using MongoDB_Web.Data.Helpers;
-@using MongoDB_Web.Data.DB;
+@using Controllers
 @using Newtonsoft.Json.Linq;
 @inject IJSRuntime JSRuntime;
-@inject DatabaseOperations DBController;
+@inject DBController DBController;
 
 <div class="modal @modalClass" tabindex="-1" role="dialog" style="display:@modalDisplay">
     <div class="modal-dialog modal-xl" role="document">

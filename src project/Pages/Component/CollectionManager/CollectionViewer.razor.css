@@ -1,0 +1,26 @@
+﻿.search-box {
+    background-color: var(--fifth-color);
+    padding-left: 8px;
+}
+
+.navbar{
+    justify-content: left;
+}
+
+button {
+    padding-top: unset;
+    padding-bottom: unset;
+    border-color: var(--secound-text-color);
+}
+
+.btn {
+    font-size: unset !important;
+}
+
+.form-control-sm {
+    font-size: unset !important;
+}
+
+li {
+    padding-right: 3px;
+}
