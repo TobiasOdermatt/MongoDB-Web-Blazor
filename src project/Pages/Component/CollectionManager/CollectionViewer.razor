@@ -1,48 +1,180 @@
-﻿@page "/CollectionViewer/{dbname}/{collectionname}"
-@using Data.DB;
-@using MongoDB.Bson;
-@using MongoDB.Bson.IO;
-@using MongoDB.Bson.Serialization;
+﻿@page "/CollectionViewer/{dbName}/{collectionname}/{itemsPerPage:int}/{currentPage:int}"
+@page "/CollectionViewer/{dbName}/{collectionname}"
+@using Controllers
+@using MongoDB.Bson
+@using MongoDB.Bson.IO
+@using MongoDB.Bson.Serialization
 @using MongoDB.Driver
-@inject DBController DBController;
+@inject DBController DBController
 
-<h2>View Collection: @Collectionname</h2>
-<div class="row bottom-div">
-    
+
+<h2>View Collection: @collectionname</h2>
+<ul class="navbar nav ml-auto search-box">
+    <li>
+        <select class="form-control-sm page" @bind="SelectedKey" style="display: @(@attributeKeyList.Count != 0 ? "block" : "none");">
+            <option value="">All keys</option>
+            @foreach (var attributeKey in attributeKeyList)
+            {
+                <option value="@attributeKey">@attributeKey</option>
+            }
+        </select>
+    </li>
+
+    <li>
+        <input class="form-control form-control-sm page" @bind="SearchValue" type="text" placeholder="value...." aria-label="Search...">
+    </li>
+
+    <li>
+        <button type="submit" class="form-control page form-control-sm btn btn-default" @onclick="Search">
+            Search
+        </button>
+    </li>
+
+</ul>
+
+
+<div class="row bottom-div" style="display: @(pageExist ? "block" : "none");">
+
     @if (collectionList == null)
     {
-        <p class="text-danger">Failed to read collection @Collectionname</p>
+        <p class="text-danger">No collection on this page</p>
     }
     else
     {
-        @foreach (var collection in collectionList)
+        @foreach (var collection in displayedCollection)
         {
             @using MongoDB_Web.Pages.Component.CollectionManager
             <ViewCollection Collection="@collection" />
         }
     }
-    
 </div>
+
+<br />
+<br />
+<div class="pagination">
+    <button class="btn btn-link" @onclick="PreviousPage" disabled="@IsPreviousButtonDisabled">Previous</button>
+    <span>Page @currentPage of @totalPages</span>
+    <button class="btn btn-link" @onclick="NextPage" disabled="@IsNextButtonDisabled">Next</button>
+</div>
+
 @code {
+    [Inject]
+    IJSRuntime? jsRuntime { get; set; }
+
     [Parameter]
-    public string? DBname { get; set; }
+    public string? dbName { get; set; }
     [Parameter]
-    public string? Collectionname { get; set; }
+    public string? collectionname { get; set; }
+    [Parameter]
+    public int itemsPerPage { get; set; } = 10;
+    [Parameter]
+    public int currentPage { get; set; } = 1;
+    [Parameter]
+    public string SelectedKey { get; set; } = "";
+    [Parameter]
+    public string SearchValue { get; set; } = "";
+
 
     List<string>? collectionList;
+    List<string> attributeKeyList = new List<string>();
+    List<string> displayedCollection = new List<string>();
+    int totalPages = 1;
+    bool pageExist = true;
+
+    private bool IsPreviousButtonDisabled => currentPage == 1;
+    private bool IsNextButtonDisabled => currentPage >= totalPages;
 
     List<string>? listCollection()
     {
-        if (DBname is null || Collectionname is null)
+        if (dbName is null || collectionname is null)
             return null;
 
-        return DBController.GetCollection(DBname, Collectionname);
+        return DBController.GetCollection(dbName, collectionname);
     }
-
-    protected override Task OnInitializedAsync()
+    void initParameter()
     {
-        collectionList = listCollection();
+        if (itemsPerPage == 0 && currentPage == 0)
+        {
+            itemsPerPage = 10; currentPage = 1;
+        }
 
-        return base.OnInitializedAsync();
     }
- }
+
+    protected override void OnParametersSet()
+    {
+        initParameter();
+        collectionList = listCollection();
+        UpdateDisplayedCollection();
+        attributeKeyList = DBController.GetCollectionAttributes(dbName, collectionname);
+    }
+
+    private void UpdateDisplayedCollection()
+    {
+        if (collectionList == null) { return; }
+
+        var filteredCollection = collectionList;
+
+        if (!string.IsNullOrWhiteSpace(SearchValue))
+        {
+            bool showAll = string.IsNullOrWhiteSpace(SelectedKey);
+            filteredCollection = filteredCollection
+                .Where(item =>
+                    (string.IsNullOrWhiteSpace(SelectedKey) || item.Contains(SelectedKey)) &&
+                    ((string.IsNullOrWhiteSpace(SearchValue) || AllOrSpecific(item,showAll)))
+                )
+                .ToList();
+        }
+
+        int startIndex = (currentPage - 1) * itemsPerPage;
+        int endIndex = startIndex + itemsPerPage;
+        displayedCollection = filteredCollection.Skip(startIndex).Take(itemsPerPage).ToList();
+        totalPages = (int)Math.Ceiling((double)filteredCollection.Count / itemsPerPage);
+    }
+
+    bool AllOrSpecific(string item, bool showAll)
+    {
+        if (showAll){
+            return item.Contains(SearchValue);
+        }
+        var jsonObject = MongoDB.Bson.Serialization.BsonSerializer.Deserialize<BsonDocument>(item);
+        if (jsonObject.Contains(SelectedKey))
+        {
+            var selectedKeyValue = jsonObject[SelectedKey].ToString();
+            if(selectedKeyValue == null){ return false; }
+            return selectedKeyValue.Contains(SearchValue);
+        }
+        return false;
+    }
+
+    private void Search()
+    {
+        currentPage = 1;
+        UpdateDisplayedCollection();
+        ChangeUrl();
+    }
+
+
+    private void PreviousPage()
+    {
+        if (currentPage > 1)
+        {
+            currentPage--;
+            UpdateDisplayedCollection();
+            ChangeUrl();
+        }
+    }
+
+    private void NextPage()
+    {
+        if (currentPage < totalPages)
+        {
+            currentPage++;
+            UpdateDisplayedCollection();
+            ChangeUrl();
+        }
+    }
+    private void ChangeUrl()
+    {
+        jsRuntime?.InvokeVoidAsync("changeUrl", $"/CollectionViewer/{dbName}/{collectionname}/{itemsPerPage}/{currentPage}");
+    }
+}

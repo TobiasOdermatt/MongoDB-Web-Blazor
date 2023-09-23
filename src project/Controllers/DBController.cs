@@ -8,10 +8,10 @@ using static MongoDB_Web.Data.Helpers.LogManager;
 using Newtonsoft.Json.Linq;
 using Bogus;
 using Microsoft.AspNetCore.SignalR;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 using MongoDB_Web.Data.Hubs;
+using System;
 
-namespace MongoDB_Web.Data.DB
+namespace MongoDB_Web.Controllers
 {
     public class DBController
     {
@@ -20,7 +20,7 @@ namespace MongoDB_Web.Data.DB
         public static string? Username;
         public static string? IPofRequest;
 
-        private readonly IHubContext<ProgressHub> _hubContext;
+        public readonly IHubContext<ProgressHub>? _hubContext;
 
         public DBController(IHubContext<ProgressHub> hubContext)
         {
@@ -43,13 +43,10 @@ namespace MongoDB_Web.Data.DB
         /// <returns>Returns List<BsonDocument></returns>
         public List<BsonDocument>? ListAllDatabases()
         {
-            if (Client is null)
-                return null;
-
             List<BsonDocument>? dbList = new();
             try
             {
-                dbList = Client.ListDatabases().ToList();
+                dbList = Client?.ListDatabases().ToList();
             }
             catch (Exception e)
             {
@@ -59,6 +56,120 @@ namespace MongoDB_Web.Data.DB
 
             return dbList;
         }
+
+        /// <summary>
+        /// Get all available attributes from a collection in a database.
+        /// </summary>
+        /// <param name="dbName">Database Name</param>
+        /// <param name="collectionName">Collection Name</param>
+        /// <returns>List of attribute names</returns>
+        public List<string> GetCollectionAttributes(string? dbName, string? collectionName)
+        {
+            if (Client is null || dbName is null || collectionName is null)
+                return new List<string>();
+
+            List<string> keyList = new();
+
+            try
+            {
+                var db = Client.GetDatabase(dbName);
+                var collection = db.GetCollection<BsonDocument>(collectionName);
+
+                var filter = new BsonDocument();
+                var cursor = collection.Find(filter).Limit(1);
+
+                if (cursor.Any())
+                {
+                    BsonDocument document = cursor.First();
+                    foreach (var element in document.Elements)
+                    {
+                        keyList.Add(element.Name);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                LogManager _ = new(LogType.Error, $"User: {Username} has failed to load attributes from Collection: {collectionName} in DB: {dbName}", e);
+                return new List<string>();
+            }
+            return keyList;
+        }
+
+        /// <summary>
+        /// Rename a collection in a database.
+        /// </summary>
+        /// <param name="dbName">Database Name</param>
+        /// <param name="oldCollectionName">Old Collection Name</param>
+        /// <param name="newCollectionName">New Collection Name</param>
+        /// <returns>True if the collection was renamed successfully, false otherwise</returns>
+        public bool RenameCollection(string? dbName, string? oldCollectionName, string? newCollectionName)
+        {
+            if (Client is null || dbName is null || oldCollectionName is null || newCollectionName is null)
+                return false;
+
+            try
+            {
+                var db = Client.GetDatabase(dbName);
+                var oldCollection = db.GetCollection<BsonDocument>(oldCollectionName);
+                var newCollection = db.GetCollection<BsonDocument>(newCollectionName);
+                var cursor = oldCollection.FindSync(FilterDefinition<BsonDocument>.Empty);
+                foreach (var document in cursor.ToEnumerable())
+                {
+                    newCollection.InsertOne(document);
+                }
+                db.DropCollection(oldCollectionName);
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                LogManager _ = new(LogType.Error, $"User: {Username} failed to rename Collection: {oldCollectionName} to {newCollectionName} in DB: {dbName}", e);
+                return false;
+            }
+        }
+
+
+        /// <summary>
+        /// Rename a database.
+        /// </summary>
+        /// <param name="oldDbName">Old Database Name</param>
+        /// <param name="newDbName">New Database Name</param>
+        /// <returns>True if the database was renamed successfully, false otherwise</returns>
+        public bool RenameDatabase(string? oldDbName, string? newDbName)
+        {
+            if (Client is null || oldDbName is null || newDbName is null)
+                return false;
+
+            try
+            {
+                var newClient = new MongoClient(Client.Settings);
+                var oldDb = Client.GetDatabase(oldDbName);
+                var newDb = newClient.GetDatabase(newDbName);
+                var collections = oldDb.ListCollectionNames().ToList();
+
+                foreach (var collectionName in collections)
+                {
+                    var oldCollection = oldDb.GetCollection<BsonDocument>(collectionName);
+                    var newCollection = newDb.GetCollection<BsonDocument>(collectionName);
+
+                    var cursor = oldCollection.FindSync(FilterDefinition<BsonDocument>.Empty);
+                    foreach (var document in cursor.ToEnumerable())
+                    {
+                        newCollection.InsertOne(document);
+                    }
+                }
+
+                Client.DropDatabase(oldDbName);
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                LogManager _ = new(LogType.Error, "Error while renaming the database from " + oldDbName + " to " + newDbName, e);
+                return false;
+            }
+        }
+
 
         /// <summary>
         /// List every Collection from specific database
@@ -140,132 +251,6 @@ namespace MongoDB_Web.Data.DB
                 return null;
             }
         }
-
-        public async Task StreamCollectionExport(StreamWriter writer, string dbName, string collectionName)
-        {
-            if (Client is null)
-                return;
-
-            try
-            {
-                var db = Client.GetDatabase(dbName);
-                var collectionData = db.GetCollection<BsonDocument>(collectionName);
-                var filter = new BsonDocument();
-
-                await writer.WriteAsync($"{{\"{dbName}\":{{\"{collectionName}\": [");
-
-                var totalDocuments = await collectionData.CountDocumentsAsync(filter);
-                var processedDocuments = 0;
-
-                using (var cursor = collectionData.Find(filter).ToCursor())
-                {
-                    var jsonWriterSettings = new JsonWriterSettings { OutputMode = JsonOutputMode.CanonicalExtendedJson };
-                    bool isFirstDocument = true;
-
-                    while (await cursor.MoveNextAsync())
-                    {
-                        foreach (var document in cursor.Current)
-                        {
-                            processedDocuments++;
-                            var progress = (int)((double)processedDocuments / totalDocuments * 100);
-                            await _hubContext.Clients.All.SendAsync("ReceiveProgressCollection", totalDocuments, processedDocuments, progress);
-
-                            if (!isFirstDocument)
-                            {
-                                await writer.WriteAsync(",");
-                            }
-
-                            var documentJson = document.ToJson(jsonWriterSettings);
-                            await writer.WriteAsync(documentJson);
-
-                            isFirstDocument = false;
-                        }
-                    }
-                }
-
-                await writer.WriteAsync("]}}}}");
-            }
-            catch (Exception e)
-            {
-                LogManager _ = new LogManager(LogType.Error, $"User: {Username} has failed to load the Collection: {collectionName} from DB: {dbName}", e);
-            }
-        }
-
-        /// <summary>
-        /// Get all collections from a Database, the return has every data from every collection in the DB
-        /// </summary>
-        /// <param name="dbName">Database Name</param>
-        /// <returns>Returns JObject?</returns>
-        public async Task StreamAllCollectionExport(StreamWriter writer, string dbName)
-        {
-            if (Client is null)
-
-                return;
-
-            try
-            {
-                var db = Client.GetDatabase(dbName);
-                var collections = db.ListCollections().ToList();
-
-                int totalCollections = collections.Count;
-                int processedCollections = 0;
-
-                await writer.WriteAsync("{\"" + dbName + "\":{");
-
-                var jsonWriterSettings = new JsonWriterSettings { OutputMode = JsonOutputMode.CanonicalExtendedJson };
-                bool isFirstCollection = true;
-
-                foreach (var collection in collections)
-                {
-                    processedCollections++;
-
-                    var progress = (int)((double)processedCollections / totalCollections * 100);
-                    await _hubContext.Clients.All.SendAsync("ReceiveProgressDatabase", totalCollections, processedCollections, progress);
-
-                    if (!isFirstCollection)
-                    {
-                        await writer.WriteAsync(",");
-                    }
-
-                    var collectionName = collection["name"].AsString;
-                    await writer.WriteAsync($"\"{collectionName}\": [");
-
-                    var collectionData = db.GetCollection<BsonDocument>(collectionName);
-                    var filter = new BsonDocument();
-
-                    using (var cursor = collectionData.Find(filter).ToCursor())
-                    {
-                        bool isFirstDocument = true;
-                        while (await cursor.MoveNextAsync())
-                        {
-                            foreach (var document in cursor.Current)
-                            {
-                                if (!isFirstDocument)
-                                {
-                                    await writer.WriteAsync(",");
-                                }
-
-                                var documentJson = document.ToJson(jsonWriterSettings);
-                                await writer.WriteAsync(documentJson);
-
-                                isFirstDocument = false;
-                            }
-                        }
-                    }
-
-                    await writer.WriteAsync("]");
-                    isFirstCollection = false;
-                }
-
-                await writer.WriteAsync("}}");
-            }
-            catch (Exception e)
-            {
-                LogManager _ = new LogManager(LogType.Error, "User: " + Username + " has failed to load the All Collections from DB: " + dbName, e);
-            }
-        }
-
-
 
         /// <summary>
         /// Delete a specific Collection from a Database
@@ -381,6 +366,130 @@ namespace MongoDB_Web.Data.DB
             return result;
         }
 
+        public async Task StreamCollectionExport(StreamWriter writer, string dbName, string collectionName, Guid guid)
+        {
+            if (Client is null)
+                return;
+
+            try
+            {
+                var db = Client.GetDatabase(dbName);
+                var collectionData = db.GetCollection<BsonDocument>(collectionName);
+                var filter = new BsonDocument();
+
+                await writer.WriteAsync($"{{\"{dbName}\":{{\"{collectionName}\": [");
+
+                var totalDocuments = await collectionData.CountDocumentsAsync(filter);
+                var processedDocuments = 0;
+
+                using (var cursor = collectionData.Find(filter).ToCursor())
+                {
+                    var jsonWriterSettings = new JsonWriterSettings { OutputMode = JsonOutputMode.CanonicalExtendedJson };
+                    bool isFirstDocument = true;
+
+                    while (await cursor.MoveNextAsync())
+                    {
+                        foreach (var document in cursor.Current)
+                        {
+                            processedDocuments++;
+                            var progress = (int)((double)processedDocuments / totalDocuments * 100);
+                            await _hubContext!.Clients.All.SendAsync("ReceiveProgressCollection", totalDocuments, processedDocuments, progress, guid.ToString());
+
+                            if (!isFirstDocument)
+                            {
+                                await writer.WriteAsync(",");
+                            }
+
+                            var documentJson = document.ToJson(jsonWriterSettings);
+                            await writer.WriteAsync(documentJson);
+
+                            isFirstDocument = false;
+                        }
+                    }
+                }
+
+                await writer.WriteAsync("]}}");
+            }
+            catch (Exception e)
+            {
+                LogManager _ = new LogManager(LogType.Error, $"User: {Username} has failed to load the Collection: {collectionName} from DB: {dbName}", e);
+            }
+        }
+
+        /// <summary>
+        /// Get all collections from a Database, the return has every data from every collection in the DB
+        /// </summary>
+        /// <param name="dbName">Database Name</param>
+        /// <returns>Returns JObject?</returns>
+        public async Task StreamAllCollectionExport(StreamWriter writer, string dbName, Guid guid)
+        {
+            if (Client is null)
+
+                return;
+
+            try
+            {
+                var db = Client.GetDatabase(dbName);
+                var collections = db.ListCollections().ToList();
+
+                int totalCollections = collections.Count;
+                int processedCollections = 0;
+
+                await writer.WriteAsync("{\"" + dbName + "\":{");
+
+                var jsonWriterSettings = new JsonWriterSettings { OutputMode = JsonOutputMode.CanonicalExtendedJson };
+                bool isFirstCollection = true;
+
+                foreach (var collection in collections)
+                {
+                    processedCollections++;
+
+                    var progress = (int)((double)processedCollections / totalCollections * 100);
+                    await _hubContext!.Clients.All.SendAsync("ReceiveProgressDatabase", totalCollections, processedCollections, progress, guid.ToString());
+
+                    if (!isFirstCollection)
+                    {
+                        await writer.WriteAsync(",");
+                    }
+
+                    var collectionName = collection["name"].AsString;
+                    await writer.WriteAsync($"\"{collectionName}\": [");
+
+                    var collectionData = db.GetCollection<BsonDocument>(collectionName);
+                    var filter = new BsonDocument();
+
+                    using (var cursor = collectionData.Find(filter).ToCursor())
+                    {
+                        bool isFirstDocument = true;
+                        while (await cursor.MoveNextAsync())
+                        {
+                            foreach (var document in cursor.Current)
+                            {
+                                if (!isFirstDocument)
+                                {
+                                    await writer.WriteAsync(",");
+                                }
+
+                                var documentJson = document.ToJson(jsonWriterSettings);
+                                await writer.WriteAsync(documentJson);
+
+                                isFirstDocument = false;
+                            }
+                        }
+                    }
+
+                    await writer.WriteAsync("]");
+                    isFirstCollection = false;
+                }
+
+                await writer.WriteAsync("}}");
+            }
+            catch (Exception e)
+            {
+                LogManager _ = new LogManager(LogType.Error, "User: " + Username + " has failed to load the All Collections from DB: " + dbName, e);
+            }
+        }
+
         public bool UploadJSON(string dbName, string collectionName, JToken json, bool adaptOid)
         {
             if (Client is null)
@@ -457,7 +566,7 @@ namespace MongoDB_Web.Data.DB
             }
         }
 
-    public byte[] ConvertToBson(List<string> documents)
+        public byte[] ConvertToBson(List<string> documents)
         {
             var bsonDocuments = new List<BsonDocument>();
 

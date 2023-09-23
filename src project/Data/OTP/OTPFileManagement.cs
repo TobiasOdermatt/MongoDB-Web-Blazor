@@ -8,7 +8,7 @@ namespace MongoDB_Web.Data.OTP
     public class OTPFileManagement
     {
         string otppath = $"{Directory.GetCurrentDirectory()}" + @"\OTP\";
-        string userFilePath = $"{Directory.GetCurrentDirectory()}" + @"\Output\";
+        string userStoragePath = $"{Directory.GetCurrentDirectory()}" + @"\UserStorage\";
         const int CLEANUP_FRESHRATE_IN_DAY = 1;
         const int DELETE_OTP_IN_DAYS = 10;
 
@@ -42,12 +42,12 @@ namespace MongoDB_Web.Data.OTP
                 return;
 
             string path = otppath + uuid + ".txt";
-            string userpath = userFilePath + uuid + ".txt";
+            string userpath = userStoragePath + uuid;
             if (File.Exists(path))
                 File.Delete(path);
 
             if (Directory.Exists(userpath))
-                Directory.Delete(userpath);
+                DeleteDirectory(userpath);
 
             LogManager _ = new(LogType.Info, "Deleted OTP file Logout: " + uuid);
         }
@@ -72,9 +72,9 @@ namespace MongoDB_Web.Data.OTP
                         File.Delete(fileName);
                         log = new(LogType.Info, "The OTP file " + fileName + " was deleted because it was older than " + DELETE_OTP_IN_DAYS + " days");
                         string uuid = Path.GetFileNameWithoutExtension(fileName);
-                        string userpath = userFilePath + uuid + ".txt";
+                        string userpath = userStoragePath + uuid;
                         if (Directory.Exists(userpath))
-                            Directory.Delete(userpath);
+                            DeleteDirectory(userpath);
                     }
             }
         }
@@ -111,6 +111,25 @@ namespace MongoDB_Web.Data.OTP
                 File.Create(otppath + "CleanUpFile.txt");
 
             File.WriteAllText(otppath + "CleanUpFile.txt", json);
+        }
+
+        public static void DeleteDirectory(string target_dir)
+        {
+            string[] files = Directory.GetFiles(target_dir);
+            string[] dirs = Directory.GetDirectories(target_dir);
+
+            foreach (string file in files)
+            {
+                File.SetAttributes(file, FileAttributes.Normal);
+                File.Delete(file);
+            }
+
+            foreach (string dir in dirs)
+            {
+                DeleteDirectory(dir);
+            }
+
+            Directory.Delete(target_dir, false);
         }
     }
 }

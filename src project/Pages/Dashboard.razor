@@ -4,7 +4,7 @@
 @inject NavigationManager navigationmanager;
 
 @using MongoDB_Web.Pages.Component.Dashboard;
-@using MongoDB_Web.Data.DB
+@using Controllers
 <PageTitle>Dashboard</PageTitle>
 @code {
      MongoDB_Web.Pages.Component.Dashboard.CreateDBModal? createDBModal { get; set; }
@@ -46,8 +46,8 @@
         return dbs;
     }
 
-    int getCollectionAmount(string dbname)
+    int getCollectionAmount(string dbName)
     {
-        return DBController.GetNumberOfCollections(dbname);
+        return DBController.GetNumberOfCollections(dbName);
     }
 }

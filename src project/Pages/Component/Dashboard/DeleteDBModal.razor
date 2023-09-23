@@ -1,4 +1,4 @@
-﻿@using MongoDB_Web.Data.DB
+﻿@using Controllers
 <div class="modal @ModalClass" tabindex="-1" role="dialog" style="display:@ModalDisplay">
     <div class="modal-dialog" role="document">
         <div class="modal-content modal-dialog">
@@ -9,10 +9,11 @@
             <div class="modal-body">
                 <p>Warning this action can not be undone.<br />
                     This will permanently delete the database. <br /> 
-                    Please retype the database name <strong>"@DBName"</strong> to confirm</p>
+                    Please retype the database name <strong>"@dbName"</strong> to confirm
+                </p>
 
 
-                <input type="text" @bind="@ConfirmationText" @oninput="@((e) => { ConfirmationText = e.Value?.ToString() ?? ""; })" class="form-control page" placeholder="@DBName" />
+                <input type="text" @bind="@ConfirmationText" @oninput="@((e) => { ConfirmationText = e.Value?.ToString() ?? ""; })" class="form-control page" placeholder="@dbName" />
                 <br />
                 @if(success is true){
                 <p class="text-success">Database was deleted successfully</p>
@@ -21,7 +22,7 @@
                 }       
             </div>
             <div class="modal-footer py-2">
-                @if (ConfirmationText == DBName)
+                @if (ConfirmationText == dbName)
                 {
                     <button type="submit" class="btn btn-danger" @onclick="deleteDB"> Delete Database</button>
                 }
@@ -44,7 +45,7 @@
 
 @code {
     [Parameter]
-    public string DBName { get; set; } = "";
+    public string dbName { get; set; } = "";
     string ConfirmationText { get; set; } = "";
     bool? success = null;
     
@@ -74,7 +75,7 @@
     
     async Task deleteDB()
     {
-        success = dbcontroller.DeleteDB(DBName);
+        success = dbcontroller.DeleteDB(dbName);
         if(success is true){
             await Task.Delay(1100);
             @inject NavigationManager navigationManager;

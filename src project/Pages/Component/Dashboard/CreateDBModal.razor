@@ -1,5 +1,5 @@
-﻿@using MongoDB_Web.Data.DB
-@inject DBController dbcontroller;
+﻿@using Controllers
+@inject DBController dbController;
 
 <div class="modal @ModalClass" tabindex="-1" role="dialog" style="display:@ModalDisplay">
     <div class="modal-dialog" role="document">
@@ -10,7 +10,7 @@
             </div>
             <div class="modal-body">
                 <p> Please type the database name</p>
-                <input type="text" @bind="@newDBName" class="form-control page" placeholder="database name" required/>
+                <input type="text" @bind="@newdbName" class="form-control page" placeholder="database name" required/>
                 <br />
                 <p> Please type the collection name</p>
                 <input type="text" @bind="@newCollectionName" class="form-control page" placeholder="collection name" required/>    
@@ -31,7 +31,7 @@
 }
 
 @code {
-    string? newDBName { get; set; }
+    string? newdbName { get; set; }
     string? newCollectionName { get; set; }
     
     Guid Guid = Guid.NewGuid();
@@ -59,15 +59,14 @@
     
     void createDB()
     {
-        if(!string.IsNullOrEmpty(newDBName) && newDBName != "")
+        if (!string.IsNullOrEmpty(newdbName) && newdbName != "")
         {
             if(!string.IsNullOrEmpty(newCollectionName) && newCollectionName != "")
             {
-            @inject DBController dbController;
-            dbController.CreateCollection(newDBName, newCollectionName);
+                dbController.CreateCollection(newdbName, newCollectionName);
             }
             @inject NavigationManager navigationManager;
-            navigationManager.NavigateTo(navigationManager.BaseUri+"/CollectionManager/"+newDBName, forceLoad: true);
+            navigationManager.NavigateTo(navigationManager.BaseUri+"/CollectionManager/"+newdbName, forceLoad: true);
         }
     }
 }

@@ -1,0 +1,151 @@
+﻿@using Controllers
+@using Newtonsoft.Json;
+@using Data.OTP;
+@using Data.Helpers
+
+
+@if (ShowBackdrop)
+{
+    <div class="modal-backdrop fade @ModalClass" style="display: @ModalDisplay"></div>
+}
+
+@code {
+    [Inject]
+    IHttpContextAccessor? HttpContextAccessor { get; set; }
+
+    [Parameter]
+    public string? dbName{ get; set; }
+
+    [Parameter]
+    public string? collectionName { get; set; }
+
+    string userStoragePath = "";
+    string filename = "";
+
+    [Inject]
+    IJSRuntime? jsRuntime { get; set; }
+
+    string ConfirmationText { get; set; } = "";
+    bool? success = null;
+    string? type;
+    
+    @inject DBController dBController
+    Guid guid = Guid.NewGuid();
+    string ModalDisplay = "none;";
+    string ModalClass = "";
+    bool ShowBackdrop = false;
+
+     async Task proccessDownload()
+    {
+        if (dbName is null || dBController is null) return;
+
+        if (HttpContextAccessor?.HttpContext == null) return;
+
+        userStoragePath = $"{Directory.GetCurrentDirectory()}" + @"\UserStorage\";
+        guid = Guid.NewGuid();
+        string lastFourChars = guid.ToString().Substring(guid.ToString().Length - 4);
+
+        OTPAuthCookieManagement AuthManager = new(HttpContextAccessor.HttpContext);
+        string? userUUID = AuthManager.GetUUID();
+
+        userStoragePath = Path.Combine(userStoragePath, userUUID + "/downloads");
+
+        if (!Directory.Exists(userStoragePath))
+            Directory.CreateDirectory(userStoragePath);
+
+        string fileName;
+
+        if (!string.IsNullOrEmpty(collectionName))
+        {
+            type = "collection";
+            fileName = $"collection-{collectionName}-{lastFourChars}.json";
+        }
+        else
+        {
+            type = "database";
+            fileName = $"db-{dbName}-{lastFourChars}.json";
+        }
+        StateHasChanged();
+        string filePath = Path.Combine(userStoragePath, fileName);
+        if (File.Exists(filePath))
+            File.Delete(filePath);
+
+
+        try
+        {
+            using (StreamWriter writer = new StreamWriter(filePath))
+            {
+                if (!string.IsNullOrEmpty(collectionName))
+                {
+                    await dBController.StreamCollectionExport(writer, dbName, collectionName, guid);
+                }
+                else
+                {
+                    await dBController.StreamAllCollectionExport(writer, dbName, guid);
+                }
+            }
+            if (File.Exists(filePath))
+            {
+                await DownloadFile(fileName);
+            }
+        }
+        catch (IOException e)
+        {
+            LogManager _ = new(LogManager.LogType.Error, "Streamwriter already in use",e);
+        }
+    }
+
+    private async Task DownloadFile(string fileName)
+    {
+        if (jsRuntime == null)
+            return;
+
+        await jsRuntime.InvokeVoidAsync("downloadURI", $"/DownloadFile?fileName={fileName}", fileName);
+    }
+
+    public async void Open()
+    {
+        ModalDisplay = "block;";
+        await Task.Delay(100);
+        ModalClass = "Show";
+        ShowBackdrop = true;
+        StateHasChanged();
+        await proccessDownload();
+    }
+
+    public async void Close()
+    {
+        ModalClass = "";
+        await Task.Delay(100);
+        ModalDisplay = "none";
+        ShowBackdrop = false;
+        StateHasChanged();
+    }
+}
+
+<div class="modal @ModalClass" tabindex="-1" role="dialog" style="display:@ModalDisplay">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content modal-dialog">
+            <div class="modal-header">
+                <h5 class="modal-title py-2">Download</h5>
+                <button type="button" class="btn-close blacktowhitetheme" data-dismiss="modal" @onclick="() => Close()" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input id="typeDB" value="type" type="hidden" />
+                <div>
+                    <progress id="fileProgress" data-guid="@guid" max="100" value="0" style="min-width: 350px;"></progress>
+                    <p id="status-text" data-guid="@guid"></p>
+                    <p id="text" data-guid="@guid">
+                    Preparing the @type for download...<br />
+                    Please wait, dont leave this site</p>
+                    <br />
+                    <p id="status-text"></p>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="() => Close()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

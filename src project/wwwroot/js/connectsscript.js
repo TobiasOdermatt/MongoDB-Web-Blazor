@@ -38,8 +38,10 @@ async function sendDataToServer(authCookieKey, randData) {
         });
         const text = await res.text();
         const dataResult = JSON.parse(text);
-        if (dataResult.hasOwnProperty('uuid'))
+        if (dataResult.hasOwnProperty('uuid')) {
             return dataResult["uuid"];
+        }
+        else { return false; }
     }
     catch (err) {
         return false;

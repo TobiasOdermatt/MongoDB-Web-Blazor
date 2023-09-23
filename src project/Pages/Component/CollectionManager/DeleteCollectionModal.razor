@@ -1,5 +1,5 @@
 ﻿@inject NavigationManager navigationManager;
-@using MongoDB_Web.Data.DB
+@using Controllers
 
 <div class="modal @ModalClass" tabindex="-1" role="dialog" style="display:@ModalDisplay">
     <div class="modal-dialog" role="document">
@@ -12,10 +12,10 @@
                 <p>
                     Warning this action can not be undone.<br />
                     This will permanently delete the collection. <br />
-                    Please retype the collection name <strong>"@CollectionName"</strong> to confirm
+                    Please retype the collection name <strong>"@collectionName"</strong> to confirm
                 </p>
 
-                <input type="text" @bind="@ConfirmationText" @oninput="@((e) => { ConfirmationText = e.Value?.ToString() ?? ""; })" class="form-control page" placeholder="@CollectionName" />
+                <input type="text" @bind="@ConfirmationText" @oninput="@((e) => { ConfirmationText = e.Value?.ToString() ?? ""; })" class="form-control page" placeholder="@collectionName" />
                 <br />
                 @if (success is true)
                 {
@@ -27,7 +27,7 @@
                 }
             </div>
             <div class="modal-footer py-2">
-                @if (ConfirmationText == CollectionName)
+                @if (ConfirmationText == collectionName)
                 {
                     <button type="submit" class="btn btn-danger" @onclick="deleteCollection"> Delete Collection</button>
                 }
@@ -50,9 +50,9 @@
 
 @code {
     [Parameter]
-    public string CollectionName { get; set; } = "";
+    public string collectionName { get; set; } = "";
     [Parameter]
-    public string DBName { get; set; } = "";
+    public string dbName{ get; set; } = "";
 
     string ConfirmationText { get; set; } = "";
     bool? success = null;
@@ -83,7 +83,7 @@
 
     async Task deleteCollection()
     {
-        success = dbcontroller.DeleteCollection(DBName, CollectionName);
+        success = dbcontroller.DeleteCollection(dbName, collectionName);
         if (success is true)
         {
             await Task.Delay(1100);

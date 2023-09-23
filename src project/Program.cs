@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.ResponseCompression;
-using MongoDB_Web.Data.DB;
+using Microsoft.AspNetCore.SignalR;
+using MongoDB.Driver;
+using MongoDB_Web.Controllers;
 using MongoDB_Web.Data.Helpers;
 using MongoDB_Web.Data.Hubs;
 using MongoDB_Web.Data.OTP;
@@ -11,11 +13,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddHttpClient();
 builder.Services.AddSignalR();
 
 IConfiguration config = new ConfigurationBuilder()
-                    .AddJsonFile("config.json", optional: false, reloadOnChange: false).Build();
+                    .AddIniFile(Directory.GetCurrentDirectory()+"/config.properties", optional: false, reloadOnChange: false).Build();
 ConfigManager configManager = new(config);
 builder.Services.AddSingleton<ConfigManager>(configManager);
 OTPFileManagement OTP = new();

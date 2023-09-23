@@ -1,5 +1,5 @@
-﻿@page "/CollectionManager/{dbname}"
-@using MongoDB_Web.Data.DB;
+﻿@page "/CollectionManager/{dbName}"
+@using Controllers
 @using MongoDB_Web.Pages.Component.CollectionManager
 @inject DBController DBController;
 @inject IJSRuntime JS
@@ -10,28 +10,32 @@
         List<MongoDB.Bson.BsonDocument>? collections = listAllCollections();
         int count = collections != null ? collections.Count : 0;
     }
-    <p class="second-text-color">@count collections found on database @DBName</p>
+    <p class="second-text-color">
+        @count collections found on database @dbName
+    </p>
     @if (collections == null)
     {
-        <p class="text-danger">Not authorized on @DBName</p>
+        <p class="text-danger">
+            Not authorized on @dbName
+        </p>
     }
     else{
         @foreach (var collection in collections)
         {
-            <ShowCollectionCard CollectionObject="@collection" DBName="@DBName" />
+            <ShowCollectionCard CollectionObject="@collection" dbName="@dbName" />
         }
     }
 
 </div>
 @code {
     [Parameter]
-    public string? DBName { get; set; }
+    public string? dbName { get; set; }
     
     List<MongoDB.Bson.BsonDocument>? listAllCollections()
     {
-        if (DBName is null)
+        if (dbName is null)
             return null;
 
-        return DBController.ListAllCollectionsfromDB(DBName);
+        return DBController.ListAllCollectionsfromDB(dbName);
     }
 }

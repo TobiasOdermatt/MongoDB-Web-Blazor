@@ -1,6 +1,8 @@
 ﻿using MongoDB_Web.Data.Helpers;
 using MongoDB.Driver;
 using static MongoDB_Web.Data.Helpers.LogManager;
+using MongoDB_Web.Controllers;
+using MongoDB.Bson;
 
 namespace MongoDB_Web.Data.DB
 {
@@ -75,6 +77,27 @@ namespace MongoDB_Web.Data.DB
                 return $"mongodb://{username}:{password}@{dbHost}:{dbPort}/{dbRules}";
             
             return $"mongodb://{dbHost}:{dbPort}";
+        }
+
+
+        /// <summary>
+        /// Test if the user see any db
+        /// </summary>
+        /// <returns>If dbs ey</returns>
+        public bool ListAllDatabasesTest()
+        {
+            try
+            {
+                List<BsonDocument>? dbList = new();
+                dbList = Client?.ListDatabases().ToList();
+                if(dbList == null)
+                    return false;
+                return true;
+            }
+            catch (Exception e)
+            {
+                return false;
+            }
         }
     }
 
