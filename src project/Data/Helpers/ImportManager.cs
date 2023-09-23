@@ -1,4 +1,4 @@
-﻿using MongoDB_Web.Data.DB;
+﻿using MongoDB_Web.Controllers;
 using Newtonsoft.Json.Linq;
 using System.Text;
 using ThirdParty.Json.LitJson;
@@ -32,7 +32,7 @@ namespace MongoDB_Web.Data.Helpers
             return (dbName, collectionsNames);
         }
 
-        public static bool ImportCollectionsAsync(string dbName, List<string> checkedCollectionNames, Dictionary<string, string> collectionNameChanges,bool adoptOid, DatabaseOperations dBController)
+        public static bool ImportCollectionsAsync(string dbName, List<string> checkedCollectionNames, Dictionary<string, string> collectionNameChanges,bool adoptOid, DBController dBController)
         {
             if (jsonData is null)
                 return false;

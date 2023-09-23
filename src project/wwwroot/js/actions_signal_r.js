@@ -2,21 +2,11 @@ async function startConnection() {
     const connection = new signalR.HubConnectionBuilder().withUrl("/progressHub").build();
 
     connection.on("ReceiveProgressDatabase", function (totalCollections, processedCollections, progress, guid) {
-
-        const progressBar = getProgressElement(guid).progressBar;
-        const progressText = getProgressElement(guid).progressTest;
-        progressBar.value = progress;
-        progressText.innerHTML = processedCollections + " / " + totalCollections + " collections";
-
+        displayStatus(totalCollections, processedCollections, progress, guid, "collections")
     });
 
     connection.on("ReceiveProgressCollection", function (totalDocuments, processedDocuments, progress, guid) {
-
-        const progressBar = getProgressElement(guid);
-        const progressText = getProgressElement(guid);
-        progressBar.value = progress;
-        progressText.innerHTML = processedDocuments + " / " + totalDocuments + " documents";
-
+        displayStatus(totalDocuments, processedDocuments, progress, guid, "documents")
     });
 
     try {
@@ -28,9 +18,17 @@ async function startConnection() {
     }
 }
 
-function getProgressElement(guid) {
+startConnection();
+
+function displayStatus(total, processed, progress, guid, type) {
     const progressBar = document.querySelector(`[data-guid="${guid}"][id="fileProgress"]`);
     const progressText = document.querySelector(`[data-guid="${guid}"][id="status-text"]`);
-    return { progressBar, progressText };
+    progressBar.value = progress;
+    progressText.innerHTML = processed + " / " + total + " " + type;
+
+    if (progress == 100) {
+        const text = document.querySelector(`[data-guid="${guid}"][id="text"]`);
+        text.innerHTML = "Download started"
+        text.classList.add("text-success");
+    }
 }
-startConnection();

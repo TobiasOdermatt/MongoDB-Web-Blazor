@@ -30,3 +30,7 @@ function downloadURI (uri, name) {
     link.click();
     document.body.removeChild(link);
 }
+
+window.changeUrl = function (newUrl) {
+    window.history.replaceState({}, document.title, newUrl);
+}
