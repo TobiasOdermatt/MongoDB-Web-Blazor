@@ -1,12 +1,12 @@
 async function startConnection() {
     const connection = new signalR.HubConnectionBuilder().withUrl("/progressHub").build();
 
-    connection.on("ReceiveProgressDatabase", function (totalCollections, processedCollections, progress, guid) {
-        displayStatus(totalCollections, processedCollections, progress, guid, "collections")
+    connection.on("ReceiveProgressDatabase", function (totalCollections, processedCollections, progress, guid, actionType) {
+        displayStatusCollectionDatabase(totalCollections, processedCollections, progress, guid, "collections", actionType)
     });
 
-    connection.on("ReceiveProgressCollection", function (totalDocuments, processedDocuments, progress, guid) {
-        displayStatus(totalDocuments, processedDocuments, progress, guid, "documents")
+    connection.on("ReceiveProgressCollection", function (totalDocuments, processedDocuments, progress, guid, actionType) {
+        displayStatusCollectionDatabase(totalDocuments, processedDocuments, progress, guid, "documents", actionType)
     });
 
     try {
@@ -20,14 +20,25 @@ async function startConnection() {
 
 startConnection();
 
-function displayStatus(total, processed, progress, guid, type) {
-    const progressBar = document.querySelector(`[data-guid="${guid}"][id="fileProgress"]`);
-    const progressText = document.querySelector(`[data-guid="${guid}"][id="status-text"]`);
+function changeProgressBar(progress, guid) {
+    const progressBar = document.querySelector(`[data-guid="${guid}"][id="ProgressBar"]`);
+    progressBar.classList.remove("d-none")
+    progressBar.classList.add("d-block")
     progressBar.value = progress;
-    progressText.innerHTML = processed + " / " + total + " " + type;
+}
 
+function displayStatusCollectionDatabase(total, processed, progress, guid, type, actionType) {
+    const progressText = document.querySelector(`[data-guid="${guid}"][id="status-text"]`);
+    progressText.innerHTML = processed + " / " + total + " " + type;
+    changeProgressBar(progress, guid);
     if (progress == 100) {
-        const text = document.querySelector(`[data-guid="${guid}"][id="text"]`);
+        changeMessage(actionType);
+    }
+}
+
+function changeMessage(actionType) {
+    const text = document.querySelector(`[data-guid="${guid}"][id="text"]`);
+    if (actionType == "download") {
         text.innerHTML = "Download started"
         text.classList.add("text-success");
     }

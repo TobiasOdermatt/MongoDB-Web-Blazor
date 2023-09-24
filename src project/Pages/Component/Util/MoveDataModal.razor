@@ -15,33 +15,30 @@
     [Parameter]
     public string? collectionName { get; set; }
 
-    string newEntityName { get; set; } = "";
+    string? newEntityName { get; set; } = "";
 
     string ConfirmationText { get; set; } = "";
     bool? success = null;
-    string? type;
+
+    [Parameter]
+    public string? type { get; set; }
 
     @inject DBController dbcontroller
     Guid guid = Guid.NewGuid();
     string ModalDisplay = "none;";
+    string? newDatabaseName = "";
     string ModalClass = "";
     bool ShowBackdrop = false;
 
-    protected override Task OnParametersSetAsync()
-    {
-        if (!string.IsNullOrEmpty(collectionName))
-        {
-            type = "collection";    
-        }
-        else
-        {
-            type = "database";
-        }
-        return base.OnParametersSetAsync();    
-    }
-
     public async void Open()
     {
+        newDatabaseName = dbName;
+        if (type == "collection")
+            newEntityName = collectionName;
+
+        if (type == "database")
+            newEntityName = newDatabaseName;
+
         ModalDisplay = "block;";
         await Task.Delay(100);
         ModalClass = "Show";
@@ -58,20 +55,20 @@
         StateHasChanged();
     }
 
-    private async Task renameEntity()
+    private async Task moveEntity()
     {
+        success = null;
         if(type == "collection")
         {
-            success = dbcontroller.RenameCollection(dbName, collectionName, newEntityName);
+            success = await  dbcontroller.MoveCollection(dbName, newDatabaseName, collectionName, newEntityName, guid);
         }
-        else
+        else if (type == "database")
         {
-            success = dbcontroller.RenameDatabase(dbName, newEntityName);
+            success = await dbcontroller.MoveDatabase(dbName, newEntityName, guid);
         }
         if (success is true)
         {
             await Task.Delay(1100);
-
             navigationManager.NavigateTo(navigationManager.Uri, forceLoad: true);
         }
     }
@@ -81,16 +78,27 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content modal-dialog">
             <div class="modal-header">
-                <h5 class="modal-title py-2">Rename @type</h5>
+                <h5 class="modal-title py-2">Move @type</h5>
                 <button type="button" class="btn-close blacktowhitetheme" data-dismiss="modal" @onclick="() => Close()" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p> Please type the new @type name</p>
+                <p> Moving @type to new name</p>
                 <input type="text" @bind="@newEntityName" class="form-control page" placeholder="@type name" required />
+                @if(type == "collection")
+                {
+                    <br />
+                <p> Moving collection to this database</p>
+                    <input type="text" @bind="@newDatabaseName" class="form-control page" placeholder="database name" required />
+                }
                 <br />
+                <p id="status-text" data-guid="@guid"></p>
+
+                <progress id="ProgressBar" class="d-none" data-guid="@guid" max="100" value="0" style="min-width: 350px;"></progress>
+                <br />
+                
                 @if (success is true)
                 {
-                    <p class="text-success">@type was renamed successfully</p>
+                    <p class="text-success">@type was moved successfully</p>
                 }
                 else if (success is false)
                 {
@@ -98,7 +106,7 @@
                 }
             </div>
             <div class="modal-footer py-2">
-                <button type="submit" class="btn btn-success" @onclick="renameEntity"> Rename</button>
+                <button type="submit" class="btn btn-success" @onclick="moveEntity"> Move @type</button>
 
                 <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="() => Close()">Cancel</button>
             </div>

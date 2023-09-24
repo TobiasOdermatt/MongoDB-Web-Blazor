@@ -15,19 +15,25 @@ namespace MongoDB_Web.Data.DB
         static string? customString;
         static string? allowedIp;
         static bool useAuthorization = true;
+        static int batchCount = 90;
 
         //Loads the connection values from config.json
         public DBConnector(IConfiguration config)
         {
-            if (Boolean.TryParse(config["UseLogin"], out bool _useAuthorizationbool))
+            if (Boolean.TryParse(config["UseAuthorization"], out bool _useAuthorizationbool))
             {
                 useAuthorization = _useAuthorizationbool;
             }
+            if (int.TryParse(config["BatchCount"], out int _batchCount))
+            {
+                batchCount = _batchCount;
+            }
+
             dbHost = config["DBHost"];
             dbPort = config["DBPort"];
             dbRules = config["DBRule"];
             customString = config["CustomConnectionString"];
-            allowedIp = config["allowedIp"];
+            allowedIp = config["AllowedIP"];
         }
 
         public DBConnector(string username, string password, string uuid, string ipOfRequest)
@@ -50,7 +56,7 @@ namespace MongoDB_Web.Data.DB
             try
             {
                 MongoClient mongoClient = new(connectionString);
-                DBController dBController = new(mongoClient, uuid, username, ipOfRequest);
+                DBController dBController = new(mongoClient, uuid, username, ipOfRequest, batchCount);
 
                 if (dBController.ListAllDatabases() == null)
                 {

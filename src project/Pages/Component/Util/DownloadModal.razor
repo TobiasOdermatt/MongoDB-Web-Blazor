@@ -27,8 +27,11 @@
 
     string ConfirmationText { get; set; } = "";
     bool? success = null;
-    string? type;
-    
+    string fileName = "";
+
+    [Parameter]
+    public string? type{ get; set; }
+
     @inject DBController dBController
     Guid guid = Guid.NewGuid();
     string ModalDisplay = "none;";
@@ -53,16 +56,12 @@
         if (!Directory.Exists(userStoragePath))
             Directory.CreateDirectory(userStoragePath);
 
-        string fileName;
-
-        if (!string.IsNullOrEmpty(collectionName))
+        if (type == "collection")
         {
-            type = "collection";
             fileName = $"collection-{collectionName}-{lastFourChars}.json";
         }
-        else
+        else if(type == "database")
         {
-            type = "database";
             fileName = $"db-{dbName}-{lastFourChars}.json";
         }
         StateHasChanged();
@@ -133,7 +132,7 @@
             <div class="modal-body">
                 <input id="typeDB" value="type" type="hidden" />
                 <div>
-                    <progress id="fileProgress" data-guid="@guid" max="100" value="0" style="min-width: 350px;"></progress>
+                    <progress id="ProgressBar" data-guid="@guid" max="100" value="0" style="min-width: 350px;" class="d-none"></progress>
                     <p id="status-text" data-guid="@guid"></p>
                     <p id="text" data-guid="@guid">
                     Preparing the @type for download...<br />

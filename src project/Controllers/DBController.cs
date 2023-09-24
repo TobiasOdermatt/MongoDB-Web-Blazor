@@ -19,6 +19,7 @@ namespace MongoDB_Web.Controllers
         public static string? UUID;
         public static string? Username;
         public static string? IPofRequest;
+        public static int BatchCount;
 
         public readonly IHubContext<ProgressHub>? _hubContext;
 
@@ -29,12 +30,13 @@ namespace MongoDB_Web.Controllers
 
         public DBController() { }
 
-        public DBController(MongoClient db, string uuid, string username, string ipOfRequest)
+        public DBController(MongoClient db, string uuid, string username, string ipOfRequest, int batchCount)
         {
             Client = db;
             UUID = uuid;
             Username = username;
             IPofRequest = ipOfRequest;
+            BatchCount = batchCount;
         }
 
         /// <summary>
@@ -102,74 +104,99 @@ namespace MongoDB_Web.Controllers
         /// <param name="oldCollectionName">Old Collection Name</param>
         /// <param name="newCollectionName">New Collection Name</param>
         /// <returns>True if the collection was renamed successfully, false otherwise</returns>
-        public bool RenameCollection(string? dbName, string? oldCollectionName, string? newCollectionName)
+        public async Task<bool> MoveCollection(string? oldDbName, string? newDbName, string? oldCollectionName, string? newCollectionName, Guid guid)
         {
-            if (Client is null || dbName is null || oldCollectionName is null || newCollectionName is null)
+            if (Client is null || oldDbName is null || newDbName is null || oldCollectionName is null || newCollectionName is null)
                 return false;
 
             try
             {
-                var db = Client.GetDatabase(dbName);
-                var oldCollection = db.GetCollection<BsonDocument>(oldCollectionName);
-                var newCollection = db.GetCollection<BsonDocument>(newCollectionName);
-                var cursor = oldCollection.FindSync(FilterDefinition<BsonDocument>.Empty);
-                foreach (var document in cursor.ToEnumerable())
+                var oldDb = Client.GetDatabase(oldDbName);
+                var newDb = Client.GetDatabase(newDbName);
+
+                var oldCollection = oldDb.GetCollection<BsonDocument>(oldCollectionName);
+                var newCollection = newDb.GetCollection<BsonDocument>(newCollectionName);
+
+                var cursor = await oldCollection.FindAsync(FilterDefinition<BsonDocument>.Empty);
+                List<BsonDocument> batch = new List<BsonDocument>();
+
+                await cursor.ForEachAsync(async document =>
                 {
-                    newCollection.InsertOne(document);
+                    batch.Add(document);
+                    if (batch.Count >= BatchCount)
+                    {
+                        await newCollection.InsertManyAsync(batch);
+                        batch.Clear();
+                    }
+                });
+
+                if (batch.Count > 0)
+                {
+                    await newCollection.InsertManyAsync(batch);
                 }
-                db.DropCollection(oldCollectionName);
+                await _hubContext!.Clients.All.SendAsync("ReceiveProgressCollection", guid.ToString(), "move");
 
                 return true;
             }
             catch (Exception e)
             {
-                LogManager _ = new(LogType.Error, $"User: {Username} failed to rename Collection: {oldCollectionName} to {newCollectionName} in DB: {dbName}", e);
+                LogManager _ = new(LogType.Error, $"Error while moving the collection {oldCollectionName} from {oldDbName} to db {newDbName} {newCollectionName}", e);
                 return false;
             }
         }
 
-
         /// <summary>
-        /// Rename a database.
+        /// Move a database to a new Datbase
         /// </summary>
         /// <param name="oldDbName">Old Database Name</param>
         /// <param name="newDbName">New Database Name</param>
-        /// <returns>True if the database was renamed successfully, false otherwise</returns>
-        public bool RenameDatabase(string? oldDbName, string? newDbName)
+        /// <returns>True if the database was moved successfully, false otherwise</returns>
+        public async Task<bool> MoveDatabase(string? oldDbName, string? newDbName, Guid guid)
         {
             if (Client is null || oldDbName is null || newDbName is null)
                 return false;
 
             try
             {
-                var newClient = new MongoClient(Client.Settings);
                 var oldDb = Client.GetDatabase(oldDbName);
-                var newDb = newClient.GetDatabase(newDbName);
+                var newDb = Client.GetDatabase(newDbName);
                 var collections = oldDb.ListCollectionNames().ToList();
+                int totalCollections = collections.Count;
 
                 foreach (var collectionName in collections)
                 {
                     var oldCollection = oldDb.GetCollection<BsonDocument>(collectionName);
                     var newCollection = newDb.GetCollection<BsonDocument>(collectionName);
 
-                    var cursor = oldCollection.FindSync(FilterDefinition<BsonDocument>.Empty);
-                    foreach (var document in cursor.ToEnumerable())
+                    var cursor = await oldCollection.FindAsync(FilterDefinition<BsonDocument>.Empty);
+                    List<BsonDocument> batch = new List<BsonDocument>();
+
+                    await cursor.ForEachAsync(async document =>
                     {
-                        newCollection.InsertOne(document);
+                        batch.Add(document);
+                        if (batch.Count >= BatchCount)
+                        {
+                            await newCollection.InsertManyAsync(batch);
+                            batch.Clear();
+                        }
+                    });
+
+                    if (batch.Count > 0)
+                    {
+                        await newCollection.InsertManyAsync(batch);
                     }
+
+                    double progress = ((double)(collections.IndexOf(collectionName) + 1) / totalCollections) * 100;
+                    await _hubContext!.Clients.All.SendAsync("ReceiveProgressDatabase", totalCollections, collections.IndexOf(collectionName) + 1, progress, guid.ToString(), "move");
                 }
-
-                Client.DropDatabase(oldDbName);
-
                 return true;
             }
             catch (Exception e)
             {
-                LogManager _ = new(LogType.Error, "Error while renaming the database from " + oldDbName + " to " + newDbName, e);
+                LogManager _ = new(LogType.Error, $"Error while moving the database from {oldDbName} to {newDbName}", e);
                 return false;
             }
         }
-
 
         /// <summary>
         /// List every Collection from specific database
@@ -393,7 +420,7 @@ namespace MongoDB_Web.Controllers
                         {
                             processedDocuments++;
                             var progress = (int)((double)processedDocuments / totalDocuments * 100);
-                            await _hubContext!.Clients.All.SendAsync("ReceiveProgressCollection", totalDocuments, processedDocuments, progress, guid.ToString());
+                            await _hubContext!.Clients.All.SendAsync("ReceiveProgressCollection", totalDocuments, processedDocuments, progress, guid.ToString(), "download");
 
                             if (!isFirstDocument)
                             {
@@ -445,7 +472,7 @@ namespace MongoDB_Web.Controllers
                     processedCollections++;
 
                     var progress = (int)((double)processedCollections / totalCollections * 100);
-                    await _hubContext!.Clients.All.SendAsync("ReceiveProgressDatabase", totalCollections, processedCollections, progress, guid.ToString());
+                    await _hubContext!.Clients.All.SendAsync("ReceiveProgressDatabase", totalCollections, processedCollections, progress, guid.ToString(), "download");
 
                     if (!isFirstCollection)
                     {
