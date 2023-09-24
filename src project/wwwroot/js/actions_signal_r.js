@@ -29,15 +29,15 @@ function changeProgressBar(progress, guid) {
 
 function displayStatusCollectionDatabase(total, processed, progress, guid, type, actionType) {
     const progressText = document.querySelector(`[data-guid="${guid}"][id="status-text"]`);
+    const text = document.querySelector(`[data-guid="${guid}"][id="text"]`);
     progressText.innerHTML = processed + " / " + total + " " + type;
     changeProgressBar(progress, guid);
     if (progress == 100) {
-        changeMessage(actionType);
+        changeMessage(actionType, text);
     }
 }
 
-function changeMessage(actionType) {
-    const text = document.querySelector(`[data-guid="${guid}"][id="text"]`);
+function changeMessage(actionType, text) {
     if (actionType == "download") {
         text.innerHTML = "Download started"
         text.classList.add("text-success");
