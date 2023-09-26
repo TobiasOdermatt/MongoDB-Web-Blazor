@@ -39,6 +39,10 @@
 .blacktowhitetheme {
     filter: brightness(0) invert(var(--colornumber));
 }
+.whitetoblacktheme {
+    filter: brightness(1) invert(var(--colornumber));
+}
+
 .title-card {
     margin-top: 0.3rem !important;    
 }
@@ -189,7 +193,6 @@ a, .btn-link {
 }
 
 .btn-primary {
-    float: right;
     color: white;
 }
 
