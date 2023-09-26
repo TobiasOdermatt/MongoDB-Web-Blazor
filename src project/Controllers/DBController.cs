@@ -418,10 +418,8 @@ namespace MongoDB_Web.Controllers
                     {
                         foreach (var document in cursor.Current)
                         {
-                            processedDocuments++;
                             var progress = (int)((double)processedDocuments / totalDocuments * 100);
                             await _hubContext!.Clients.All.SendAsync("ReceiveProgressCollection", totalDocuments, processedDocuments, progress, guid.ToString(), "download");
-
                             if (!isFirstDocument)
                             {
                                 await writer.WriteAsync(",");
@@ -431,6 +429,7 @@ namespace MongoDB_Web.Controllers
                             await writer.WriteAsync(documentJson);
 
                             isFirstDocument = false;
+                            processedDocuments++;
                         }
                     }
                 }
@@ -469,11 +468,8 @@ namespace MongoDB_Web.Controllers
 
                 foreach (var collection in collections)
                 {
-                    processedCollections++;
-
                     var progress = (int)((double)processedCollections / totalCollections * 100);
                     await _hubContext!.Clients.All.SendAsync("ReceiveProgressDatabase", totalCollections, processedCollections, progress, guid.ToString(), "download");
-
                     if (!isFirstCollection)
                     {
                         await writer.WriteAsync(",");
@@ -507,6 +503,7 @@ namespace MongoDB_Web.Controllers
 
                     await writer.WriteAsync("]");
                     isFirstCollection = false;
+                    processedCollections++;
                 }
 
                 await writer.WriteAsync("}}");
@@ -560,35 +557,48 @@ namespace MongoDB_Web.Controllers
             }
         }
 
-        public async Task GenerateRandomData(string dbName, int collectionsCount, int totalDocuments)
+        public async Task GenerateRandomData(string dbName, int collectionsCount, int totalDocuments, Guid guid)
         {
             if (Client is null)
                 return;
 
             var faker = new Faker();
-
             var db = Client.GetDatabase(dbName);
-
             int documentsPerCollection = totalDocuments / collectionsCount;
 
             for (int i = 1; i <= collectionsCount; i++)
             {
                 var collectionName = $"collection-{i}";
                 var collection = db.GetCollection<BsonDocument>(collectionName);
+                List<BsonDocument> batch = new List<BsonDocument>();
 
                 for (int j = 0; j < documentsPerCollection; j++)
                 {
                     var randomData = new BsonDocument
-                {
-                    { "name", faker.Name.FullName()},
-                    { "email", faker.Internet.Email()},
-                    { "address", faker.Address.StreetAddress()},
-                    { "phone", faker.Phone.PhoneNumber()},
-                    { "company", faker.Company.CompanyName()},
-                    { "jobTitle", faker.Name.JobTitle()},
-                };
+            {
+                { "name", faker.Name.FullName()},
+                { "email", faker.Internet.Email()},
+                { "address", faker.Address.StreetAddress()},
+                { "phone", faker.Phone.PhoneNumber()},
+                { "company", faker.Company.CompanyName()},
+                { "jobTitle", faker.Name.JobTitle()},
+            };
 
-                    await collection.InsertOneAsync(randomData);
+                    batch.Add(randomData);
+
+                    if (batch.Count >= BatchCount)
+                    {
+                        collection.InsertManyAsync(batch).Wait();
+                        batch.Clear();
+                    }
+
+                    var progress = (int)((double)i / collectionsCount * 100);
+                    await _hubContext!.Clients.All.SendAsync("ReceiveProgressDatabase", collectionsCount, i, progress, guid.ToString(), "generate");
+                }
+
+                if (batch.Count > 0)
+                {
+                    collection.InsertManyAsync(batch).Wait();
                 }
             }
         }
