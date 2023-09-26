@@ -1,10 +1,11 @@
 ﻿@page "/CollectionViewer/{dbName}/{collectionname}/{itemsPerPage:int}/{currentPage:int}"
 @page "/CollectionViewer/{dbName}/{collectionname}"
+@page "/CollectionViewer/{dbName}/{collectionname}/{itemsPerPage:int}/{currentPage:int}/{SelectedKey}/{SearchValue}"
+@page "/CollectionViewer/{dbName}/{collectionname}/{SelectedKey}/{SearchValue}"
+
 @using Controllers
 @using MongoDB.Bson
-@using MongoDB.Bson.IO
-@using MongoDB.Bson.Serialization
-@using MongoDB.Driver
+@using System.Web
 @inject DBController DBController
 
 
@@ -29,6 +30,18 @@
             Search
         </button>
     </li>
+    
+    <li class="ms-auto right-nav-side">
+        <button type="submit" class="form-control page form-control-sm btn btn-primary">
+            <img src="../icons/settings.svg" class="svgicon whitetoblacktheme"> Adjust collection
+        </button>
+    </li>
+
+    <li class="ms-2 right-nav-side">
+        <button type="submit" class="form-control page form-control-sm btn btn-primary">
+            <img src="../icons/insert.svg" class="svgicon whitetoblacktheme"> Insert collection
+        </button>
+    </li>
 
 </ul>
 
@@ -43,7 +56,6 @@
     {
         @foreach (var collection in displayedCollection)
         {
-            @using MongoDB_Web.Pages.Component.CollectionManager
             <ViewCollection Collection="@collection" />
         }
     }
@@ -83,6 +95,16 @@
 
     private bool IsPreviousButtonDisabled => currentPage == 1;
     private bool IsNextButtonDisabled => currentPage >= totalPages;
+
+    [Inject]
+    public NavigationManager NavigationManager { get; set; }
+
+    protected override void OnInitialized()
+    {
+        var uri = new Uri(NavigationManager.Uri);
+        SelectedKey = HttpUtility.ParseQueryString(uri.Query).Get("key") ?? "";
+        SearchValue = HttpUtility.ParseQueryString(uri.Query).Get("search") ?? "";
+    }
 
     List<string>? listCollection()
     {
@@ -175,6 +197,9 @@
     }
     private void ChangeUrl()
     {
-        jsRuntime?.InvokeVoidAsync("changeUrl", $"/CollectionViewer/{dbName}/{collectionname}/{itemsPerPage}/{currentPage}");
+        string newUrl = $"/CollectionViewer/{dbName}/{collectionname}/{itemsPerPage}/{currentPage}?key={SelectedKey}&search={SearchValue}";
+        jsRuntime?.InvokeVoidAsync("changeUrl", newUrl);
     }
+
+
 }
