@@ -233,3 +233,9 @@ a, .btn-link {
     border-color: var(--secound-color);
     margin-left: 10px;
 }
+
+.page-link {
+    background-color: var(--fifth-color);
+    color: var(--font-color);
+    user-select: none;
+}

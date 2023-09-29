@@ -279,6 +279,86 @@ namespace MongoDB_Web.Controllers
             }
         }
 
+        public long GetTotalCount(string dbName, string collectionName, string selectedKey, string searchValue)
+        {
+            var filter = Builders<BsonDocument>.Filter.Empty;
+
+            var database = Client.GetDatabase(dbName);
+            var collection = database.GetCollection<BsonDocument>(collectionName);
+
+            if (!string.IsNullOrWhiteSpace(searchValue))
+            {
+                if (!string.IsNullOrWhiteSpace(selectedKey))
+                {
+                    filter = Builders<BsonDocument>.Filter.Regex(selectedKey, new BsonRegularExpression(searchValue, "i"));
+                }
+                else
+                {
+                    var fieldNames = collection.Find(new BsonDocument()).Limit(1).FirstOrDefault()?.Names.ToList();
+                    var filters = new List<FilterDefinition<BsonDocument>>();
+
+                    if (fieldNames != null)
+                    {
+                        foreach (var field in fieldNames)
+                        {
+                            filters.Add(Builders<BsonDocument>.Filter.Regex(field, new BsonRegularExpression(searchValue, "i")));
+                        }
+                    }
+
+                    filter = Builders<BsonDocument>.Filter.Or(filters);
+                }
+            }
+
+            return collection.CountDocuments(filter);
+        }
+
+
+        public List<string> GetCollection(string dbName, string collectionName, int skip, int limit, string selectedKey, string searchValue)
+        {
+            var filter = Builders<BsonDocument>.Filter.Empty;
+
+            var database = Client.GetDatabase(dbName);
+            var collection = database.GetCollection<BsonDocument>(collectionName);
+
+            if (!string.IsNullOrWhiteSpace(searchValue))
+            {
+                if (!string.IsNullOrWhiteSpace(selectedKey))
+                {
+                    filter = Builders<BsonDocument>.Filter.Regex(selectedKey, new BsonRegularExpression(searchValue, "i"));
+                }
+                else
+                {
+                    var fieldNames = collection.Find(new BsonDocument()).Limit(1).FirstOrDefault()?.Names.ToList();
+                    var filters = new List<FilterDefinition<BsonDocument>>();
+
+                    if (fieldNames != null)
+                    {
+                        foreach (var field in fieldNames)
+                        {
+                            filters.Add(Builders<BsonDocument>.Filter.Regex(field, new BsonRegularExpression(searchValue, "i")));
+                        }
+                    }
+
+                    filter = Builders<BsonDocument>.Filter.Or(filters);
+                }
+            }
+
+            return collection.Find(filter).Skip(skip).Limit(limit).ToList().Select(doc => doc.ToString()).ToList();
+        }
+
+        public int GetCollectionCount(string dbName, string collectionName, string selectedKey, string searchValue)
+        {
+            var filter = Builders<BsonDocument>.Filter.Empty;
+            if (!string.IsNullOrWhiteSpace(selectedKey) && !string.IsNullOrWhiteSpace(searchValue))
+            {
+                filter = Builders<BsonDocument>.Filter.Regex(selectedKey, new BsonRegularExpression(searchValue, "i"));
+            }
+
+            var database = Client.GetDatabase(dbName);
+            var collection = database.GetCollection<BsonDocument>(collectionName);
+            return (int)collection.CountDocuments(filter);
+        }
+
         /// <summary>
         /// Delete a specific Collection from a Database
         /// </summary>
@@ -455,6 +535,7 @@ namespace MongoDB_Web.Controllers
 
             try
             {
+                var progress = 0;
                 var db = Client.GetDatabase(dbName);
                 var collections = db.ListCollections().ToList();
 
@@ -468,7 +549,7 @@ namespace MongoDB_Web.Controllers
 
                 foreach (var collection in collections)
                 {
-                    var progress = (int)((double)processedCollections / totalCollections * 100);
+                    progress = (int)((double)processedCollections / totalCollections * 100);
                     await _hubContext!.Clients.All.SendAsync("ReceiveProgressDatabase", totalCollections, processedCollections, progress, guid.ToString(), "download");
                     if (!isFirstCollection)
                     {
@@ -505,7 +586,8 @@ namespace MongoDB_Web.Controllers
                     isFirstCollection = false;
                     processedCollections++;
                 }
-
+                progress = (int)((double)processedCollections / totalCollections * 100);
+                await _hubContext!.Clients.All.SendAsync("ReceiveProgressDatabase", totalCollections, processedCollections, progress, guid.ToString(), "download");
                 await writer.WriteAsync("}}");
             }
             catch (Exception e)
