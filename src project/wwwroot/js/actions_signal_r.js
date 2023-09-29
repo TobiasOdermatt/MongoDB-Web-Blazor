@@ -32,6 +32,7 @@ function displayStatusCollectionDatabase(total, processed, progress, guid, type,
     const text = document.querySelector(`[data-guid="${guid}"][id="text"]`);
     progressText.innerHTML = processed + " / " + total + " " + type;
     changeProgressBar(progress, guid);
+    stopAnimation(guid, progress);
     if (progress == 100) {
         changeMessage(actionType, text);
     }
@@ -41,5 +42,26 @@ function changeMessage(actionType, text) {
     if (actionType == "download") {
         text.innerHTML = "Download started"
         text.classList.add("text-success");
+    }
+}
+
+let alreadyStoppedIndexes = new Set();
+
+function stopAnimation(guid, progress) {
+    const animatedElements = document.querySelectorAll(`[data-guid="${guid}"][id="status-animation"] .cube`);
+    const totalElements = 27;
+    const elementsToStop = Math.floor((progress / 100) * totalElements);
+
+    animatedElements.forEach((element, index) => {
+        if (index < elementsToStop && !alreadyStoppedIndexes.has(index)) {
+            alreadyStoppedIndexes.add(index);
+            element.addEventListener('animationiteration', function handler() {
+                element.style.animationPlayState = 'paused';
+                element.removeEventListener('animationiteration', handler);
+            });
+        }
+    });
+    if (progress === 100) {
+        alreadyStoppedIndexes.clear();
     }
 }
