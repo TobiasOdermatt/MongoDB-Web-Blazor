@@ -10,6 +10,7 @@ using Bogus;
 using Microsoft.AspNetCore.SignalR;
 using MongoDB_Web.Data.Hubs;
 using System;
+using Bogus.DataSets;
 
 namespace MongoDB_Web.Controllers
 {
@@ -359,6 +360,56 @@ namespace MongoDB_Web.Controllers
             return (int)collection.CountDocuments(filter);
         }
 
+        public async Task<bool> InsertDocumentAsync(string dbName, string collectionName, dynamic document)
+        {
+            if (Client is null)
+                return false;
+
+            try
+            {
+                var database = Client.GetDatabase(dbName);
+                var collection = database.GetCollection<BsonDocument>(collectionName);
+                var doc = BsonDocument.Parse(JObject.FromObject(document).ToString());
+
+                await collection.InsertOneAsync(doc);
+                LogManager _ = new LogManager(LogType.Info, "User: " + Username + " has inserted a document into DB: " + dbName);
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                LogManager _ = new LogManager(LogType.Error, "User: " + Username + " failed to insert document into DB: " + dbName + " " + e);
+                return false;
+            }
+        }
+
+        public async Task UpdateMongoDB(string dbName, string collectionName, Dictionary<string, object> differences, Dictionary<string, string> renameMap, string id)
+        {
+            if (Client == null)
+                return;
+
+            var database = Client.GetDatabase(dbName);
+            var collection = database.GetCollection<BsonDocument>(collectionName);
+
+            var filter = Builders<BsonDocument>.Filter.Eq("_id", new ObjectId(id));
+            var updateDef = Builders<BsonDocument>.Update;
+
+            foreach (var rename in renameMap)
+            {
+                var renameDefinition = updateDef.Rename(rename.Key, rename.Value);
+                await collection.UpdateOneAsync(filter, renameDefinition);
+            }
+
+            foreach (var diff in differences)
+            {
+                var updateDefinition = updateDef.Set(diff.Key, diff.Value);
+                await collection.UpdateOneAsync(filter, updateDefinition);
+            }
+        }
+
+
+
+
         /// <summary>
         /// Delete a specific Collection from a Database
         /// </summary>
@@ -493,12 +544,13 @@ namespace MongoDB_Web.Controllers
                 {
                     var jsonWriterSettings = new JsonWriterSettings { OutputMode = JsonOutputMode.CanonicalExtendedJson };
                     bool isFirstDocument = true;
+                    var progress = 0;
 
                     while (await cursor.MoveNextAsync())
                     {
                         foreach (var document in cursor.Current)
                         {
-                            var progress = (int)((double)processedDocuments / totalDocuments * 100);
+                            progress = (int)((double)processedDocuments / totalDocuments * 100);
                             await _hubContext!.Clients.All.SendAsync("ReceiveProgressCollection", totalDocuments, processedDocuments, progress, guid.ToString(), "download");
                             if (!isFirstDocument)
                             {
@@ -510,6 +562,8 @@ namespace MongoDB_Web.Controllers
 
                             isFirstDocument = false;
                             processedDocuments++;
+                            progress = (int)((double)processedDocuments / totalDocuments * 100);
+                            await _hubContext!.Clients.All.SendAsync("ReceiveProgressCollection", totalDocuments, processedDocuments, progress, guid.ToString(), "download");
                         }
                     }
                 }

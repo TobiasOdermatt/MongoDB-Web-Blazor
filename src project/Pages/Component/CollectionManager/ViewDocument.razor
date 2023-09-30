@@ -1,0 +1,59 @@
+﻿@using Controllers
+@using Data.Helpers
+<div class="row align-items-center">
+    <div class="col">
+        <textarea @oninput="OnInputChange" autocomplete="off" class="form-control">@Document</textarea>
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-primary" @onclick="SaveCollection" disabled="@IsButtonDisabled">Save</button>
+    </div>
+</div>
+<br />
+
+@code {
+    @inject DBController dbController;
+    [Parameter]
+    public string Document { get; set; } = "";
+    [Parameter]
+    public string dbName { get; set; } = "";
+    [Parameter]
+    public string collectionName { get; set; } = "";
+    public string OldDocument = "";
+    public bool IsButtonDisabled = true;
+    public bool? savingSuccess = null;
+
+    protected override void OnParametersSet()
+    {
+        OldDocument = Document;
+        UpdateButtonState();
+    }
+
+    private async Task SaveCollection()
+    {
+        if (Document != OldDocument)
+        {
+            Tokenizer tokenizer = new();
+            var differences = tokenizer.FindDifferencesInDocument(OldDocument, Document);
+            var renameMap = tokenizer.FindRenameMap();
+
+            if (differences.Count > 0 || renameMap.Count > 0)
+            {
+                await dbController.UpdateMongoDB(dbName, collectionName, differences, renameMap, tokenizer.GetObjectId());
+            }
+            IsButtonDisabled = true;
+        }
+    }
+
+
+
+    private void OnInputChange(ChangeEventArgs e)
+    {
+        Document = e.Value.ToString();
+        UpdateButtonState();
+    }
+
+    private void UpdateButtonState()
+    {
+        IsButtonDisabled = (Document == OldDocument);
+    }
+}

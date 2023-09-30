@@ -6,10 +6,15 @@
 @using Controllers
 @using MongoDB.Bson
 @using System.Web
+@using MongoDB_Web.Pages.Component.Util;
 @inject DBController DBController
 
+@code{
+    InsertDocumentModal? insertDocumentModal { get; set; }
+}
+<InsertDocumentModal @ref="insertDocumentModal" dbName="@dbName" collectionName="@collectionName" />"
 
-<h2>View Collection: @collectionname</h2>
+<h2>View Collection: @collectionName</h2>
 <ul class="navbar nav ml-auto search-box">
     <li>
         <select class="form-control-sm page" @bind="SelectedKey" style="display: @(@attributeKeyList.Count != 0 ? "block" : "none");">
@@ -38,7 +43,7 @@
     </li>
 
     <li class="ms-2 right-nav-side">
-        <button type="submit" class="form-control page form-control-sm btn btn-primary">
+        <button type="submit" class="form-control page form-control-sm btn btn-primary" @onclick="() => insertDocumentModal?.Open()" @onclick:preventDefault>
             <img src="../icons/insert.svg" class="svgicon whitetoblacktheme"> Insert collection
         </button>
     </li>
@@ -52,15 +57,15 @@
 
 <div class="row bottom-div" style="display: @(pageExist ? "block" : "none");">
 
-    @if (collectionList == null)
+    @if (documentsList == null)
     {
         <p class="text-danger">No collection on this page</p>
     }
     else
     {
-        @foreach (var collection in displayedCollection)
+        @foreach (var document in displayedDocuments)
         {
-            <ViewCollection Collection="@collection" />
+            <ViewDocument Document="@document" dbName="@dbName" collectionName="@collectionName"/>
         }
     }
 </div>
@@ -108,7 +113,7 @@
     [Parameter]
     public string? dbName { get; set; } = "";
     [Parameter]
-    public string? collectionname { get; set; } = "";
+    public string? collectionName { get; set; } = "";
     [Parameter]
     public int itemsPerPage { get; set; } = 10;
     [Parameter]
@@ -119,9 +124,9 @@
     public string SearchValue { get; set; } = "";
 
 
-    List<string>? collectionList;
+    List<string>? documentsList;
     List<string> attributeKeyList = new List<string>();
-    List<string> displayedCollection = new List<string>();
+    List<string> displayedDocuments = new List<string>();
     int totalPages = 1;
     long totalCount;
     bool pageExist = true;
@@ -141,23 +146,24 @@
         currentPage = int.Parse(HttpUtility.ParseQueryString(uri.Query).Get("currentPage") ?? "1");
     }
 
-    List<string>? listCollection(string selectedKey, string searchValue)
+    List<string>? listDocuments(string selectedKey, string searchValue)
     {
         var skip = (currentPage - 1) * itemsPerPage;
+        skip = skip == -10 ? 0 : skip;
         var limit = itemsPerPage;
-        if (dbName is null || collectionname is null)
+        if (dbName is null || collectionName is null)
             return null;
 
-         var collectionList = DBController.GetCollection(dbName, collectionname, skip, limit, selectedKey, searchValue);
-        totalCount = DBController.GetTotalCount(dbName, collectionname, selectedKey, searchValue);
+        var documentsList = DBController.GetCollection(dbName, collectionName, skip, limit, selectedKey, searchValue);
+        totalCount = DBController.GetTotalCount(dbName, collectionName, selectedKey, searchValue);
         totalPages = (int)Math.Ceiling((double)totalCount / itemsPerPage);
-        return collectionList;
+        return documentsList;
     }
     void initParameter()
     {
         if (itemsPerPage == 0 && currentPage == 0)
             itemsPerPage = 10;
-        totalCount = DBController.GetCollectionCount(dbName, collectionname, SelectedKey, SearchValue);
+        totalCount = DBController.GetCollectionCount(dbName, collectionName, SelectedKey, SearchValue);
         totalPages = (int)Math.Ceiling((double)totalCount / itemsPerPage);
     }
 
@@ -165,24 +171,24 @@
     {
         initParameter();
 
-        collectionList = listCollection(SelectedKey, SearchValue);
+        documentsList = listDocuments(SelectedKey, SearchValue);
 
         UpdateDisplayedCollection();
 
-        attributeKeyList = DBController.GetCollectionAttributes(dbName, collectionname);
+        attributeKeyList = DBController.GetCollectionAttributes(dbName, collectionName);
 
         StateHasChanged();
     }
 
     private void UpdateDisplayedCollection()
     {
-        if (collectionList == null) { return; }
-        displayedCollection = new List<string>(collectionList);
+        if (documentsList == null) { return; }
+        displayedDocuments = new List<string>(documentsList);
     }
 
     private void Search()
     {
-        collectionList = listCollection(SelectedKey, SearchValue);
+        documentsList = listDocuments(SelectedKey, SearchValue);
         currentPage = 1;
         UpdateDisplayedCollection();
         ChangeUrl();
@@ -194,7 +200,7 @@
         if (currentPage > 1)
         {
             currentPage--;
-            collectionList = listCollection(SelectedKey, SearchValue);
+            documentsList = listDocuments(SelectedKey, SearchValue);
             UpdateDisplayedCollection();
             ChangeUrl();
             StateHasChanged();
@@ -206,7 +212,7 @@
         if (currentPage < totalPages)
         {
             currentPage++;
-            collectionList = listCollection(SelectedKey, SearchValue);
+            documentsList = listDocuments(SelectedKey, SearchValue);
             UpdateDisplayedCollection();
             ChangeUrl();
             StateHasChanged();
@@ -215,14 +221,14 @@
 
     private void ChangeUrl()
     {
-        string newUrl = $"/CollectionViewer/{dbName}/{collectionname}?itemsPerPage={itemsPerPage}&currentPage={currentPage}&key={SelectedKey}&search={SearchValue}";
+        string newUrl = $"/CollectionViewer/{dbName}/{collectionName}?itemsPerPage={itemsPerPage}&currentPage={currentPage}&key={SelectedKey}&search={SearchValue}";
         jsRuntime?.InvokeVoidAsync("changeUrl", newUrl);
     }
 
     private void GoToPage(int page)
     {
         currentPage = page;
-        collectionList = listCollection(SelectedKey, SearchValue);
+        documentsList = listDocuments(SelectedKey, SearchValue);
         UpdateDisplayedCollection();
         ChangeUrl();
         StateHasChanged();
