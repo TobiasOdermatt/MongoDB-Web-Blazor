@@ -21,6 +21,16 @@ button {
     font-size: unset !important;
 }
 
-li {
+.space {
     padding-right: 3px;
+}
+
+
+.right-nav-side {
+    margin-right: 1em;
+}
+
+.page-item.disabled .page-link {
+    color: var(--font-color)!important;
+    background-color: var(--secound-color) !important;
 }

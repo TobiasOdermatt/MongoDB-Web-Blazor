@@ -1,0 +1,14 @@
+﻿@code {
+    MongoDB_Web.Pages.Component.Util.GenerateTestDBModal? generateTestDBModal { get; set; }
+}
+<MongoDB_Web.Pages.Component.Util.GenerateTestDBModal @ref="generateTestDBModal" />
+@page "/Settings";
+
+<h3>Settings</h3>
+
+<br />
+<h5>Test database</h5>
+<button class="btn btn-primary" @onclick="() => generateTestDBModal?.Open()">Generate</button>
+@code {
+
+}

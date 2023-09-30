@@ -77,7 +77,7 @@
     {
         success = dbcontroller.DeleteDB(dbName);
         if(success is true){
-            await Task.Delay(1100);
+            await Task.Delay(400);
             @inject NavigationManager navigationManager;
             navigationManager.NavigateTo(navigationManager.Uri, forceLoad: true);
         }

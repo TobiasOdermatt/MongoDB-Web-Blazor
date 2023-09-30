@@ -9,6 +9,7 @@
     --third-color: #25292c;
     --fifth-color: #212529;
     --colornumber: 1;
+    --danger-background: #2b2020;
 }
 
 .light-mode {
@@ -19,6 +20,11 @@
     --third-color: #e5e5e5;
     --fifth-color: #f3f3f3;
     --colornumber: 0;
+    --danger-background: #f1d0d0;
+}
+
+.danger-background{
+    background-color: var(--danger-background) !important;
 }
 
 .bottom-div {
@@ -33,6 +39,10 @@
 .blacktowhitetheme {
     filter: brightness(0) invert(var(--colornumber));
 }
+.whitetoblacktheme {
+    filter: brightness(1) invert(var(--colornumber));
+}
+
 .title-card {
     margin-top: 0.3rem !important;    
 }
@@ -56,7 +66,7 @@
 }
 
 .modal-header {
-    background-color: var(--third-color) !important;
+    background-color: var(--third-color);
     border-bottom: 1px solid var(--secound-color);
 }
 
@@ -179,11 +189,10 @@ a, .btn-link {
 
 .card-header {
     border-bottom: 1px solid var(--secound-color);
-    background-color: var(--third-color) !important;
+    background-color: var(--third-color);
 }
 
 .btn-primary {
-    float: right;
     color: white;
 }
 
@@ -223,4 +232,10 @@ a, .btn-link {
     border-bottom-style: groove;
     border-color: var(--secound-color);
     margin-left: 10px;
+}
+
+.page-link {
+    background-color: var(--fifth-color);
+    color: var(--font-color);
+    user-select: none;
 }

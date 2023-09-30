@@ -1,18 +1,19 @@
-﻿@code {
-    MongoDB_Web.Pages.Component.CollectionManager.DeleteCollectionModal? deleteCollectionModal { get; set; }
-    MongoDB_Web.Pages.Component.Util.DownloadModal? downloadModal { get; set; }
-    MongoDB_Web.Pages.Component.Util.RenameModal? renameModal { get; set; }
+﻿@using MongoDB_Web.Pages.Component.Util
+@code {
+    DeleteCollectionModal? deleteCollectionModal { get; set; }
+    DownloadModal? downloadModal { get; set; }
+    MoveDataModal? moveModal { get; set; }
 }
 <DeleteCollectionModal @ref="deleteCollectionModal" dbName="@dbName" collectionName="@name" />
-<MongoDB_Web.Pages.Component.Util.DownloadModal @ref="downloadModal" dbName="@dbName"  collectionName="@name"/>
-<MongoDB_Web.Pages.Component.Util.RenameModal @ref="renameModal" dbName="@dbName" collectionName="@name"/>
+<MongoDB_Web.Pages.Component.Util.DownloadModal @ref="downloadModal" dbName="@dbName" collectionName="@name" type="collection" />
+<MongoDB_Web.Pages.Component.Util.MoveDataModal @ref="moveModal" dbName="@dbName" collectionName="@name" type="collection" />
 <div class="col-lg-4 col-xl-3 col-md-5 mb-8 col-sm-12 py-3">
     <div class="shadow card h-100 rounded cardbox">
         <div class="card-header py-1">
             <div class="card-title">
                 <h4 class="title-card">@name</h4>
             </div>
-            <button type="button" @onclick="() => deleteCollectionModal?.Open()" class=" btn-close deleteicon blacktowhitetheme" aria-label="Close"></button>
+            <button type="button" @onclick="() => deleteCollectionModal?.OpenAsync()" class=" btn-close deleteicon blacktowhitetheme" aria-label="Close"></button>
         </div>
         <div class="card-body">
             <p class="card-text">
@@ -26,10 +27,10 @@
                 </button>
                 <ul class="dropdown-menu element-background">
                     <li><a class="dropdown-item element-background" href="#">Details</a></li>
-                    <li><a class="dropdown-item element-background" href="" @onclick="() => renameModal?.Open()" @onclick:preventDefault>Rename Collection</a></li>
+                    <li><a class="dropdown-item element-background" href="" @onclick="() => moveModal?.Open()" @onclick:preventDefault>Move Collection</a></li>
                     <li><a class="dropdown-item element-background" href="" @onclick="() => downloadModal?.Open()" @onclick:preventDefault>Download Collection</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger" href="" @onclick="() => deleteCollectionModal?.Open()" @onclick:preventDefault>Delete Collection</a></li>
+                    <li><a class="dropdown-item text-danger" href="" @onclick="() => deleteCollectionModal?.OpenAsync()" @onclick:preventDefault>Delete Collection</a></li>
                 </ul>
             </div>
             <a href="/CollectionViewer/@dbName/@name" class="btn btn-primary">Open</a>

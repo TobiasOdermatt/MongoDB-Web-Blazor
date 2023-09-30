@@ -10,6 +10,7 @@ using Bogus;
 using Microsoft.AspNetCore.SignalR;
 using MongoDB_Web.Data.Hubs;
 using System;
+using Bogus.DataSets;
 
 namespace MongoDB_Web.Controllers
 {
@@ -19,6 +20,7 @@ namespace MongoDB_Web.Controllers
         public static string? UUID;
         public static string? Username;
         public static string? IPofRequest;
+        public static int BatchCount;
 
         public readonly IHubContext<ProgressHub>? _hubContext;
 
@@ -29,12 +31,13 @@ namespace MongoDB_Web.Controllers
 
         public DBController() { }
 
-        public DBController(MongoClient db, string uuid, string username, string ipOfRequest)
+        public DBController(MongoClient db, string uuid, string username, string ipOfRequest, int batchCount)
         {
             Client = db;
             UUID = uuid;
             Username = username;
             IPofRequest = ipOfRequest;
+            BatchCount = batchCount;
         }
 
         /// <summary>
@@ -102,74 +105,99 @@ namespace MongoDB_Web.Controllers
         /// <param name="oldCollectionName">Old Collection Name</param>
         /// <param name="newCollectionName">New Collection Name</param>
         /// <returns>True if the collection was renamed successfully, false otherwise</returns>
-        public bool RenameCollection(string? dbName, string? oldCollectionName, string? newCollectionName)
+        public async Task<bool> MoveCollection(string? oldDbName, string? newDbName, string? oldCollectionName, string? newCollectionName, Guid guid)
         {
-            if (Client is null || dbName is null || oldCollectionName is null || newCollectionName is null)
+            if (Client is null || oldDbName is null || newDbName is null || oldCollectionName is null || newCollectionName is null)
                 return false;
 
             try
             {
-                var db = Client.GetDatabase(dbName);
-                var oldCollection = db.GetCollection<BsonDocument>(oldCollectionName);
-                var newCollection = db.GetCollection<BsonDocument>(newCollectionName);
-                var cursor = oldCollection.FindSync(FilterDefinition<BsonDocument>.Empty);
-                foreach (var document in cursor.ToEnumerable())
+                var oldDb = Client.GetDatabase(oldDbName);
+                var newDb = Client.GetDatabase(newDbName);
+
+                var oldCollection = oldDb.GetCollection<BsonDocument>(oldCollectionName);
+                var newCollection = newDb.GetCollection<BsonDocument>(newCollectionName);
+
+                var cursor = await oldCollection.FindAsync(FilterDefinition<BsonDocument>.Empty);
+                List<BsonDocument> batch = new List<BsonDocument>();
+
+                await cursor.ForEachAsync(async document =>
                 {
-                    newCollection.InsertOne(document);
+                    batch.Add(document);
+                    if (batch.Count >= BatchCount)
+                    {
+                        await newCollection.InsertManyAsync(batch);
+                        batch.Clear();
+                    }
+                });
+
+                if (batch.Count > 0)
+                {
+                    await newCollection.InsertManyAsync(batch);
                 }
-                db.DropCollection(oldCollectionName);
+                await _hubContext!.Clients.All.SendAsync("ReceiveProgressCollection", guid.ToString(), "move");
 
                 return true;
             }
             catch (Exception e)
             {
-                LogManager _ = new(LogType.Error, $"User: {Username} failed to rename Collection: {oldCollectionName} to {newCollectionName} in DB: {dbName}", e);
+                LogManager _ = new(LogType.Error, $"Error while moving the collection {oldCollectionName} from {oldDbName} to db {newDbName} {newCollectionName}", e);
                 return false;
             }
         }
 
-
         /// <summary>
-        /// Rename a database.
+        /// Move a database to a new Datbase
         /// </summary>
         /// <param name="oldDbName">Old Database Name</param>
         /// <param name="newDbName">New Database Name</param>
-        /// <returns>True if the database was renamed successfully, false otherwise</returns>
-        public bool RenameDatabase(string? oldDbName, string? newDbName)
+        /// <returns>True if the database was moved successfully, false otherwise</returns>
+        public async Task<bool> MoveDatabase(string? oldDbName, string? newDbName, Guid guid)
         {
             if (Client is null || oldDbName is null || newDbName is null)
                 return false;
 
             try
             {
-                var newClient = new MongoClient(Client.Settings);
                 var oldDb = Client.GetDatabase(oldDbName);
-                var newDb = newClient.GetDatabase(newDbName);
+                var newDb = Client.GetDatabase(newDbName);
                 var collections = oldDb.ListCollectionNames().ToList();
+                int totalCollections = collections.Count;
 
                 foreach (var collectionName in collections)
                 {
                     var oldCollection = oldDb.GetCollection<BsonDocument>(collectionName);
                     var newCollection = newDb.GetCollection<BsonDocument>(collectionName);
 
-                    var cursor = oldCollection.FindSync(FilterDefinition<BsonDocument>.Empty);
-                    foreach (var document in cursor.ToEnumerable())
+                    var cursor = await oldCollection.FindAsync(FilterDefinition<BsonDocument>.Empty);
+                    List<BsonDocument> batch = new List<BsonDocument>();
+
+                    await cursor.ForEachAsync(async document =>
                     {
-                        newCollection.InsertOne(document);
+                        batch.Add(document);
+                        if (batch.Count >= BatchCount)
+                        {
+                            await newCollection.InsertManyAsync(batch);
+                            batch.Clear();
+                        }
+                    });
+
+                    if (batch.Count > 0)
+                    {
+                        await newCollection.InsertManyAsync(batch);
                     }
+
+                    double progress = ((double)(collections.IndexOf(collectionName) + 1) / totalCollections) * 100;
+                    await _hubContext!.Clients.All.SendAsync("ReceiveProgressDatabase", totalCollections, collections.IndexOf(collectionName) + 1, progress, guid.ToString(), "move");
                 }
-
-                Client.DropDatabase(oldDbName);
-
                 return true;
             }
             catch (Exception e)
             {
-                LogManager _ = new(LogType.Error, "Error while renaming the database from " + oldDbName + " to " + newDbName, e);
+                LogManager _ = new(LogType.Error, $"Error while moving the database from {oldDbName} to {newDbName}", e);
                 return false;
             }
         }
-
 
         /// <summary>
         /// List every Collection from specific database
@@ -251,6 +279,136 @@ namespace MongoDB_Web.Controllers
                 return null;
             }
         }
+
+        public long GetTotalCount(string dbName, string collectionName, string selectedKey, string searchValue)
+        {
+            var filter = Builders<BsonDocument>.Filter.Empty;
+
+            var database = Client.GetDatabase(dbName);
+            var collection = database.GetCollection<BsonDocument>(collectionName);
+
+            if (!string.IsNullOrWhiteSpace(searchValue))
+            {
+                if (!string.IsNullOrWhiteSpace(selectedKey))
+                {
+                    filter = Builders<BsonDocument>.Filter.Regex(selectedKey, new BsonRegularExpression(searchValue, "i"));
+                }
+                else
+                {
+                    var fieldNames = collection.Find(new BsonDocument()).Limit(1).FirstOrDefault()?.Names.ToList();
+                    var filters = new List<FilterDefinition<BsonDocument>>();
+
+                    if (fieldNames != null)
+                    {
+                        foreach (var field in fieldNames)
+                        {
+                            filters.Add(Builders<BsonDocument>.Filter.Regex(field, new BsonRegularExpression(searchValue, "i")));
+                        }
+                    }
+
+                    filter = Builders<BsonDocument>.Filter.Or(filters);
+                }
+            }
+
+            return collection.CountDocuments(filter);
+        }
+
+
+        public List<string> GetCollection(string dbName, string collectionName, int skip, int limit, string selectedKey, string searchValue)
+        {
+            var filter = Builders<BsonDocument>.Filter.Empty;
+
+            var database = Client.GetDatabase(dbName);
+            var collection = database.GetCollection<BsonDocument>(collectionName);
+
+            if (!string.IsNullOrWhiteSpace(searchValue))
+            {
+                if (!string.IsNullOrWhiteSpace(selectedKey))
+                {
+                    filter = Builders<BsonDocument>.Filter.Regex(selectedKey, new BsonRegularExpression(searchValue, "i"));
+                }
+                else
+                {
+                    var fieldNames = collection.Find(new BsonDocument()).Limit(1).FirstOrDefault()?.Names.ToList();
+                    var filters = new List<FilterDefinition<BsonDocument>>();
+
+                    if (fieldNames != null)
+                    {
+                        foreach (var field in fieldNames)
+                        {
+                            filters.Add(Builders<BsonDocument>.Filter.Regex(field, new BsonRegularExpression(searchValue, "i")));
+                        }
+                    }
+
+                    filter = Builders<BsonDocument>.Filter.Or(filters);
+                }
+            }
+
+            return collection.Find(filter).Skip(skip).Limit(limit).ToList().Select(doc => doc.ToString()).ToList();
+        }
+
+        public int GetCollectionCount(string dbName, string collectionName, string selectedKey, string searchValue)
+        {
+            var filter = Builders<BsonDocument>.Filter.Empty;
+            if (!string.IsNullOrWhiteSpace(selectedKey) && !string.IsNullOrWhiteSpace(searchValue))
+            {
+                filter = Builders<BsonDocument>.Filter.Regex(selectedKey, new BsonRegularExpression(searchValue, "i"));
+            }
+
+            var database = Client.GetDatabase(dbName);
+            var collection = database.GetCollection<BsonDocument>(collectionName);
+            return (int)collection.CountDocuments(filter);
+        }
+
+        public async Task<bool> InsertDocumentAsync(string dbName, string collectionName, dynamic document)
+        {
+            if (Client is null)
+                return false;
+
+            try
+            {
+                var database = Client.GetDatabase(dbName);
+                var collection = database.GetCollection<BsonDocument>(collectionName);
+                var doc = BsonDocument.Parse(JObject.FromObject(document).ToString());
+
+                await collection.InsertOneAsync(doc);
+                LogManager _ = new LogManager(LogType.Info, "User: " + Username + " has inserted a document into DB: " + dbName);
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                LogManager _ = new LogManager(LogType.Error, "User: " + Username + " failed to insert document into DB: " + dbName + " " + e);
+                return false;
+            }
+        }
+
+        public async Task UpdateMongoDB(string dbName, string collectionName, Dictionary<string, object> differences, Dictionary<string, string> renameMap, string id)
+        {
+            if (Client == null)
+                return;
+
+            var database = Client.GetDatabase(dbName);
+            var collection = database.GetCollection<BsonDocument>(collectionName);
+
+            var filter = Builders<BsonDocument>.Filter.Eq("_id", new ObjectId(id));
+            var updateDef = Builders<BsonDocument>.Update;
+
+            foreach (var rename in renameMap)
+            {
+                var renameDefinition = updateDef.Rename(rename.Key, rename.Value);
+                await collection.UpdateOneAsync(filter, renameDefinition);
+            }
+
+            foreach (var diff in differences)
+            {
+                var updateDefinition = updateDef.Set(diff.Key, diff.Value);
+                await collection.UpdateOneAsync(filter, updateDefinition);
+            }
+        }
+
+
+
 
         /// <summary>
         /// Delete a specific Collection from a Database
@@ -386,15 +544,14 @@ namespace MongoDB_Web.Controllers
                 {
                     var jsonWriterSettings = new JsonWriterSettings { OutputMode = JsonOutputMode.CanonicalExtendedJson };
                     bool isFirstDocument = true;
+                    var progress = 0;
 
                     while (await cursor.MoveNextAsync())
                     {
                         foreach (var document in cursor.Current)
                         {
-                            processedDocuments++;
-                            var progress = (int)((double)processedDocuments / totalDocuments * 100);
-                            await _hubContext!.Clients.All.SendAsync("ReceiveProgressCollection", totalDocuments, processedDocuments, progress, guid.ToString());
-
+                            progress = (int)((double)processedDocuments / totalDocuments * 100);
+                            await _hubContext!.Clients.All.SendAsync("ReceiveProgressCollection", totalDocuments, processedDocuments, progress, guid.ToString(), "download");
                             if (!isFirstDocument)
                             {
                                 await writer.WriteAsync(",");
@@ -404,6 +561,9 @@ namespace MongoDB_Web.Controllers
                             await writer.WriteAsync(documentJson);
 
                             isFirstDocument = false;
+                            processedDocuments++;
+                            progress = (int)((double)processedDocuments / totalDocuments * 100);
+                            await _hubContext!.Clients.All.SendAsync("ReceiveProgressCollection", totalDocuments, processedDocuments, progress, guid.ToString(), "download");
                         }
                     }
                 }
@@ -429,6 +589,7 @@ namespace MongoDB_Web.Controllers
 
             try
             {
+                var progress = 0;
                 var db = Client.GetDatabase(dbName);
                 var collections = db.ListCollections().ToList();
 
@@ -442,11 +603,8 @@ namespace MongoDB_Web.Controllers
 
                 foreach (var collection in collections)
                 {
-                    processedCollections++;
-
-                    var progress = (int)((double)processedCollections / totalCollections * 100);
-                    await _hubContext!.Clients.All.SendAsync("ReceiveProgressDatabase", totalCollections, processedCollections, progress, guid.ToString());
-
+                    progress = (int)((double)processedCollections / totalCollections * 100);
+                    await _hubContext!.Clients.All.SendAsync("ReceiveProgressDatabase", totalCollections, processedCollections, progress, guid.ToString(), "download");
                     if (!isFirstCollection)
                     {
                         await writer.WriteAsync(",");
@@ -480,8 +638,10 @@ namespace MongoDB_Web.Controllers
 
                     await writer.WriteAsync("]");
                     isFirstCollection = false;
+                    processedCollections++;
                 }
-
+                progress = (int)((double)processedCollections / totalCollections * 100);
+                await _hubContext!.Clients.All.SendAsync("ReceiveProgressDatabase", totalCollections, processedCollections, progress, guid.ToString(), "download");
                 await writer.WriteAsync("}}");
             }
             catch (Exception e)
@@ -533,35 +693,48 @@ namespace MongoDB_Web.Controllers
             }
         }
 
-        public async Task GenerateRandomData(string dbName, int collectionsCount, int totalDocuments)
+        public async Task GenerateRandomData(string dbName, int collectionsCount, int totalDocuments, Guid guid)
         {
             if (Client is null)
                 return;
 
             var faker = new Faker();
-
             var db = Client.GetDatabase(dbName);
-
             int documentsPerCollection = totalDocuments / collectionsCount;
 
             for (int i = 1; i <= collectionsCount; i++)
             {
                 var collectionName = $"collection-{i}";
                 var collection = db.GetCollection<BsonDocument>(collectionName);
+                List<BsonDocument> batch = new List<BsonDocument>();
 
                 for (int j = 0; j < documentsPerCollection; j++)
                 {
                     var randomData = new BsonDocument
-                {
-                    { "name", faker.Name.FullName()},
-                    { "email", faker.Internet.Email()},
-                    { "address", faker.Address.StreetAddress()},
-                    { "phone", faker.Phone.PhoneNumber()},
-                    { "company", faker.Company.CompanyName()},
-                    { "jobTitle", faker.Name.JobTitle()},
-                };
+            {
+                { "name", faker.Name.FullName()},
+                { "email", faker.Internet.Email()},
+                { "address", faker.Address.StreetAddress()},
+                { "phone", faker.Phone.PhoneNumber()},
+                { "company", faker.Company.CompanyName()},
+                { "jobTitle", faker.Name.JobTitle()},
+            };
 
-                    await collection.InsertOneAsync(randomData);
+                    batch.Add(randomData);
+
+                    if (batch.Count >= BatchCount)
+                    {
+                        collection.InsertManyAsync(batch).Wait();
+                        batch.Clear();
+                    }
+
+                    var progress = (int)((double)i / collectionsCount * 100);
+                    await _hubContext!.Clients.All.SendAsync("ReceiveProgressDatabase", collectionsCount, i, progress, guid.ToString(), "generate");
+                }
+
+                if (batch.Count > 0)
+                {
+                    collection.InsertManyAsync(batch).Wait();
                 }
             }
         }

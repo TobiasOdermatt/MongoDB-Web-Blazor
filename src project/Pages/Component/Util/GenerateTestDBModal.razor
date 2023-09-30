@@ -1,0 +1,78 @@
+﻿@using Controllers
+@using Newtonsoft.Json;
+@using Data.OTP;
+@using Data.Helpers
+
+@if (ShowBackdrop)
+{
+    <div class="modal-backdrop fade @ModalClass" style="display: @ModalDisplay"></div>
+}
+
+@code {
+
+    string ConfirmationText { get; set; } = "";
+    bool? success = null;
+
+    @inject DBController dBController
+    Guid guid = Guid.NewGuid();
+    string newDbName = "Test-DB-";
+    int collectionsCount;
+    int totalDocuments;
+    string ModalDisplay = "none;";
+    string ModalClass = "";
+    bool ShowBackdrop = false;
+
+    public async void Open()
+    {
+        string lastFourChars = guid.ToString().Substring(guid.ToString().Length - 4);
+        newDbName = newDbName + lastFourChars;
+        ModalDisplay = "block;";
+        await Task.Delay(100);
+        ModalClass = "Show";
+        ShowBackdrop = true;
+        StateHasChanged();
+    }
+
+    public async void Close()
+    {
+        ModalClass = "";
+        await Task.Delay(100);
+        ModalDisplay = "none";
+        ShowBackdrop = false;
+        StateHasChanged();
+    }
+
+    async void generateDatabase()
+    {
+        await dBController.GenerateRandomData(newDbName, collectionsCount, totalDocuments, guid);
+    }
+}
+
+<div class="modal @ModalClass" tabindex="-1" role="dialog" style="display:@ModalDisplay">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content modal-dialog">
+            <div class="modal-header">
+                <h5 class="modal-title py-2">Generate test database</h5>
+                <button type="button" class="btn-close blacktowhitetheme" data-dismiss="modal" @onclick="() => Close()" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input id="typeDB" value="type" type="hidden" />
+                <div>
+                    <p>Name of database</p>
+                    <input type="text" @bind="newDbName" class="form-control page" placeholder="New test database name"/><br />
+                    <p>Number of collections</p>
+                    <input type="number" @bind="collectionsCount" class="form-control page" /><br />
+                    <p>Number of documents</p>
+                    <input type="number" @bind="totalDocuments" class="form-control page" /><br />
+                    <progress id="ProgressBar" data-guid="@guid" max="100" value="0" style="min-width: 350px;" class="d-none"></progress>
+                    <p id="status-text" data-guid="@guid"></p>
+                    <p id="text" data-guid="@guid"></p>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-primary" @onclick="generateDatabase">Generate Database</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="() => Close()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

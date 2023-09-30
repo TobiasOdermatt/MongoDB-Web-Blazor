@@ -2,14 +2,14 @@
 @code {
     MongoDB_Web.Pages.Component.Dashboard.DeleteDBModal? deleteDBModal { get; set; }
     MongoDB_Web.Pages.Component.Util.DownloadModal? downloadModal{ get; set; }
-    MongoDB_Web.Pages.Component.Util.RenameModal? renameModal { get; set; }
+    MongoDB_Web.Pages.Component.Util.MoveDataModal? moveModal { get; set; }
 }
 <DeleteDBModal @ref="deleteDBModal" dbName="@name"/>
-<MongoDB_Web.Pages.Component.Util.DownloadModal @ref="downloadModal" dbName="@name"/>
-<MongoDB_Web.Pages.Component.Util.RenameModal @ref="renameModal" dbName="@name"/>
+<MongoDB_Web.Pages.Component.Util.DownloadModal @ref="downloadModal" dbName="@name" type="database" />
+<MongoDB_Web.Pages.Component.Util.MoveDataModal @ref="moveModal" dbName="@name" type="database" />
 <div class="col-lg-4 col-xl-3 col-md-5 mb-8 col-sm-12 py-3">
     <div class="shadow card h-100 rounded cardbox">
-        <div class="card-header py-1">
+        <div class="card-header py-1 @(name == "admin" || name == "config" || name == "local" ? "danger-background" : "")">
             <div class="card-title">
             <h4 class="title-card">@name</h4>
                 </div>
@@ -30,10 +30,13 @@
                     Option
                 </button>
                 <ul class="dropdown-menu element-background">
-                    <li><a class="dropdown-item element-background" href="" @onclick="() => renameModal?.Open()" @onclick:preventDefault>Rename DB</a></li>
+                    <li><a class="dropdown-item element-background" href="" @onclick="() => moveModal?.Open()" @onclick:preventDefault>Copy DB</a></li>
                     <li><a class="dropdown-item element-background" href="" @onclick="() => downloadModal?.Open()" @onclick:preventDefault>Download DB</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger" href="" @onclick="() => deleteDBModal?.Open()" @onclick:preventDefault>Delete Database</a></li>
+                    @if (!(name == "admin" || name == "config" || name == "local"))
+                    {
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="" @onclick="() => deleteDBModal?.Open()" @onclick:preventDefault>Delete Database</a></li>
+                    }
                 </ul>
             </div>
             <a href="CollectionManager/@name" class="btn btn-primary">Open</a>

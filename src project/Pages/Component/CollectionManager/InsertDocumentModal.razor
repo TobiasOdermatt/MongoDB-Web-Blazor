@@ -1,0 +1,93 @@
+﻿@using Controllers
+@using Newtonsoft.Json;
+@using Data.OTP;
+@using Data.Helpers
+
+@if (ShowBackdrop)
+{
+    <div class="modal-backdrop fade @ModalClass" style="display: @ModalDisplay"></div>
+}
+
+@code {
+
+    string ConfirmationText { get; set; } = "";
+    bool? success = null;
+
+    @inject DBController dBController
+    Guid guid = Guid.NewGuid();
+    string ModalDisplay = "none;";
+    string ModalClass = "";
+    bool ShowBackdrop = false;
+    [Parameter]
+    public string? dbName { get; set; }
+
+    [Parameter]
+    public string? collectionName { get; set; }
+
+    string jsonInput;
+
+    public async void Open()
+    {
+        ModalDisplay = "block;";
+        await Task.Delay(100);
+        ModalClass = "Show";
+        ShowBackdrop = true;
+        StateHasChanged();
+    }
+
+    public async void Close()
+    {
+        ModalClass = "";
+        await Task.Delay(100);
+        ModalDisplay = "none";
+        ShowBackdrop = false;
+        StateHasChanged();
+    }
+
+    public async Task InsertDocument()
+    {
+        try
+        {
+            var documentObj = JsonConvert.DeserializeObject<dynamic>(jsonInput);
+            await dBController.InsertDocumentAsync(dbName, collectionName, documentObj);
+            success = true;
+            success = true;
+        }
+        catch (Exception e)
+        {
+            success = false;
+        }
+    }
+
+
+}
+
+<div class="modal @ModalClass" tabindex="-1" role="dialog" style="display:@ModalDisplay">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content modal-dialog">
+            <div class="modal-header">
+                <h5 class="modal-title py-2">Insert new document</h5>
+                <button type="button" class="btn-close blacktowhitetheme" data-dismiss="modal" @onclick="() => Close()" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <p>Please insert a document</p>
+                    <textarea @bind="jsonInput" rows="4" cols="50"></textarea>
+                </div>
+
+                @if (success is true)
+                {
+                    <p class="text-success">document was added successfully</p>
+                }
+                else if (success is false)
+                {
+                    <p class="text-danger">Ooops, something went wrong</p>
+                }
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-primary" @onclick="InsertDocument">Insert Document</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="() => Close()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
