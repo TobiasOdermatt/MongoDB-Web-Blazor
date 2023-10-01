@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <None Remove="config.properties" />
+    <None Remove="Pages\Component\Collection\SettingsCollectionModal.razor.css" />
   </ItemGroup>
 
   <ItemGroup>

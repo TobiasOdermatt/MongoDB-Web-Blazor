@@ -2,7 +2,7 @@
 @using Data.Helpers
 <div class="row align-items-center">
     <div class="col">
-        <textarea @oninput="OnInputChange" autocomplete="off" class="form-control">@Document</textarea>
+        <textarea @oninput="OnInputChange" autocomplete="off" class="form-control page">@Document</textarea>
     </div>
     <div class="col-auto">
         <button class="btn btn-primary" @onclick="SaveCollection" disabled="@IsButtonDisabled">Save</button>
@@ -43,8 +43,6 @@
             IsButtonDisabled = true;
         }
     }
-
-
 
     private void OnInputChange(ChangeEventArgs e)
     {
