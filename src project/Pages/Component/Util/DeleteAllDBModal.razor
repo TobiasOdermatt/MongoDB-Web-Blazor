@@ -1,0 +1,87 @@
+﻿@inject NavigationManager navigationManager;
+@using Controllers
+
+<div class="modal @ModalClass" tabindex="-1" role="dialog" style="display:@ModalDisplay">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content modal-dialog">
+            <div class="modal-header">
+                <h5 class="modal-title py-2">Are you absolutely sure?</h5>
+                <button type="button" class="btn-close blacktowhitetheme" data-dismiss="modal" @onclick="() => Close()" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>
+                    Warning this action can not be undone.<br />
+                    This will permanently delete all databases. <br />
+                    Please retype the text <strong>"I AM SURE"</strong> to confirm
+                </p>
+
+                <input type="text" @bind="@ConfirmationText" @oninput="@((e) => { ConfirmationText = e.Value?.ToString() ?? ""; })" class="form-control page" placeholder="I AM SURE" />
+                <br />
+                @if (success is true)
+                {
+                    <p class="text-success">Collection was deleted successfully</p>
+                }
+                else if (success is false)
+                {
+                    <p class="text-danger">Ooops, something went wrong</p>
+                }
+            </div>
+            <div class="modal-footer py-2">
+                @if (ConfirmationText == "I AM SURE")
+                {
+                    <button type="submit" class="btn btn-danger" @onclick="DeleteAllDatabaseAsync"> Delete all databases</button>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-danger" disabled>Delete all databases</button>
+
+                }
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="() => Close()">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (ShowBackdrop)
+{
+    <div class="modal-backdrop fade @ModalClass" style="display: @ModalDisplay"></div>
+}
+
+@code {
+    private string ConfirmationText { get; set; } = "";
+    private bool? success = null;
+
+    @inject DBController dBController;
+    private Guid Guid = Guid.NewGuid();
+    private string ModalDisplay = "none;";
+    private string ModalClass = "";
+    private bool ShowBackdrop = false;
+
+    public async void Open()
+    {
+        ModalDisplay = "block;";
+        await Task.Delay(100);
+        ModalClass = "Show";
+        ShowBackdrop = true;
+        StateHasChanged();
+    }
+
+    public async void Close()
+    {
+        ModalClass = "";
+        await Task.Delay(100);
+        ModalDisplay = "none";
+        ShowBackdrop = false;
+        StateHasChanged();
+    }
+
+    private async Task DeleteAllDatabaseAsync()
+    {
+        success = dBController.DeleteAllDatabases();
+        if (success is true)
+        {
+            await Task.Delay(1100);
+            navigationManager.NavigateTo(navigationManager.Uri, forceLoad: true);
+        }
+    }
+}
