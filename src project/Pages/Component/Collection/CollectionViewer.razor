@@ -51,7 +51,7 @@
     </li>
 
 </ul>
-<input type="checkbox" class="checkbox-area" id="checkbox-hide-id" />
+<input type="checkbox" class="checkbox-area" id="checkbox-hide-id" checked="@hideObjectId" @onchange="hideId" />
 <label for="checkbox-hide-id">Hide ObjectId</label>
 <p class="second-text-color resultText">
     @totalCount documents found.
@@ -68,8 +68,14 @@
     {
         @foreach (var document in displayedDocuments)
         {
-            <ViewDocument Document="@document" dbName="@dbName" collectionName="@collectionName"/>
+            var documentToDisplay = document.ToString();
+            var objectId = document.GetValue("_id").ToString();
+            if (hideObjectId)
+                documentToDisplay = document.ToString().Replace($"\"_id\" : ObjectId(\"{objectId}\"),", "");
+
+            <ViewDocument Document="@documentToDisplay" ObjectId="@objectId" dbName="@dbName" collectionName="@collectionName" />
         }
+
     }
 </div>
 <br />
@@ -127,21 +133,21 @@
     public string SearchValue { get; set; } = "";
 
 
-    List<string>? documentsList;
+    List<BsonDocument>? documentsList;
     List<string> attributeKeyList = new List<string>();
-    List<string> displayedDocuments = new List<string>();
+    List<BsonDocument> displayedDocuments = new List<BsonDocument>();
     int totalPages = 1;
     long totalCount;
     bool pageExist = true;
+    bool hideObjectId = true;
 
     private bool IsPreviousButtonDisabled => currentPage == 1;
     private bool IsNextButtonDisabled => currentPage >= totalPages;
 
-    [Inject]
-    public NavigationManager NavigationManager { get; set; }
 
     protected override void OnInitialized()
     {
+        @inject NavigationManager NavigationManager;
         var uri = new Uri(NavigationManager.Uri);
         SelectedKey = HttpUtility.ParseQueryString(uri.Query).Get("key") ?? "";
         SearchValue = HttpUtility.ParseQueryString(uri.Query).Get("search") ?? "";
@@ -149,7 +155,7 @@
         currentPage = int.Parse(HttpUtility.ParseQueryString(uri.Query).Get("currentPage") ?? "1");
     }
 
-    List<string>? listDocuments(string selectedKey, string searchValue)
+    List<BsonDocument>? listDocuments(string selectedKey, string searchValue)
     {
         var skip = (currentPage - 1) * itemsPerPage;
         skip = skip == -10 ? 0 : skip;
@@ -164,6 +170,9 @@
     }
     void initParameter()
     {
+        if (dbName == null || collectionName == null)
+            return;
+
         if (itemsPerPage == 0 && currentPage == 0)
             itemsPerPage = 10;
         totalCount = DBController.GetCollectionCount(dbName, collectionName, SelectedKey, SearchValue);
@@ -186,7 +195,7 @@
     private void UpdateDisplayedCollection()
     {
         if (documentsList == null) { return; }
-        displayedDocuments = new List<string>(documentsList);
+        displayedDocuments = new List<BsonDocument>(documentsList);
     }
 
     private void Search()
@@ -234,6 +243,12 @@
         documentsList = listDocuments(SelectedKey, SearchValue);
         UpdateDisplayedCollection();
         ChangeUrl();
+        StateHasChanged();
+    }
+
+    void hideId()
+    {
+        hideObjectId = !hideObjectId;
         StateHasChanged();
     }
 

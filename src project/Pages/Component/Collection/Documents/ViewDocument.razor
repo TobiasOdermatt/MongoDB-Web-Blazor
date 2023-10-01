@@ -2,7 +2,8 @@
 @using Data.Helpers
 <div class="row align-items-center">
     <div class="col">
-        <textarea @oninput="OnInputChange" autocomplete="off" class="form-control page">@Document</textarea>
+<textarea id="@ObjectId" @oninput="OnInputChange" autocomplete="off" class="form-control page">@Document</textarea>
+
     </div>
     <div class="col-auto">
         <button class="btn btn-primary" @onclick="SaveCollection" disabled="@IsButtonDisabled">Save</button>
@@ -18,6 +19,8 @@
     public string dbName { get; set; } = "";
     [Parameter]
     public string collectionName { get; set; } = "";
+    [Parameter]
+    public string ObjectId { get; set; } = "";
     public string OldDocument = "";
     public bool IsButtonDisabled = true;
     public bool? savingSuccess = null;
@@ -38,7 +41,7 @@
 
             if (differences.Count > 0 || renameMap.Count > 0)
             {
-                await dbController.UpdateMongoDB(dbName, collectionName, differences, renameMap, tokenizer.GetObjectId());
+                await dbController.UpdateMongoDB(dbName, collectionName, differences, renameMap, ObjectId);
             }
             IsButtonDisabled = true;
         }

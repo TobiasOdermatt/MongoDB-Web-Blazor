@@ -342,7 +342,7 @@ namespace MongoDB_Web.Controllers
         }
 
 
-        public List<string> GetCollection(string dbName, string collectionName, int skip, int limit, string selectedKey, string searchValue)
+        public List<BsonDocument> GetCollection(string dbName, string collectionName, int skip, int limit, string selectedKey, string searchValue)
         {
             var filter = Builders<BsonDocument>.Filter.Empty;
 
@@ -372,7 +372,7 @@ namespace MongoDB_Web.Controllers
                 }
             }
 
-            return collection.Find(filter).Skip(skip).Limit(limit).ToList().Select(doc => doc.ToString()).ToList();
+            return collection.Find(filter).Skip(skip).Limit(limit).ToList().Select(doc => doc).ToList();
         }
 
         public int GetCollectionCount(string dbName, string collectionName, string selectedKey, string searchValue)
@@ -435,8 +435,35 @@ namespace MongoDB_Web.Controllers
             }
         }
 
+        public bool DeleteAllDatabases()
+        {
+            if (Client is null)
+                return false;
 
+            bool overallResult = true;
+            try
+            {
+                var databaseNames = Client.ListDatabaseNames().ToList();
+                foreach (var dbName in databaseNames)
+                {
+                    if(dbName == "admin" || dbName == "config" || dbName == "local")
+                        continue;
+                    
+                    if (!DeleteDB(dbName))
+                    {
+                        overallResult = false;
+                    }
+                }
+                LogManager _ = new(LogType.Info, "User: " + Username + " has deleted all databases.");
+            }
+            catch (Exception e)
+            {
+                LogManager _ = new(LogType.Error, "User: " + Username + " has failed to delete all databases. " + e);
+                overallResult = false;
+            }
 
+            return overallResult;
+        }
 
         /// <summary>
         /// Delete a specific Collection from a Database
