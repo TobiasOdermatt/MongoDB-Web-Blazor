@@ -1,0 +1,71 @@
+﻿@page "/Statistic"
+@using Controllers
+@using MongoDB.Bson;
+@using System.Text;
+<h3>Statistic</h3>
+
+@if (stats != null)
+{
+    <table class="table page">
+        <thead>
+            <tr>
+                <th>Field</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var element in stats)
+            {
+                <tr>
+                    <td>@element.Name</td>
+                    <td>@DisplayElement(element.Value)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>Failed to fetch statistics.</p>
+}
+
+@code {
+    @inject DBController dBController
+    BsonDocument? stats;
+
+    protected override void OnInitialized()
+    {
+        stats = dBController.GetGlobalStatistics();
+        StateHasChanged();
+    }
+
+    MarkupString DisplayElement(BsonValue elementValue)
+    {
+        if (elementValue.IsBsonDocument)
+        {
+            var sb = new StringBuilder();
+            sb.Append("<ul>");
+            foreach (var subElement in elementValue.AsBsonDocument)
+            {
+                sb.Append($"<li>{subElement.Name}: {DisplayElement(subElement.Value)}</li>");
+            }
+            sb.Append("</ul>");
+            return new MarkupString(sb.ToString());
+        }
+        else if (elementValue.IsBsonArray)
+        {
+            var sb = new StringBuilder();
+            sb.Append("[ ");
+            foreach (var subElement in elementValue.AsBsonArray)
+            {
+                sb.Append($"{DisplayElement(subElement)}, ");
+            }
+            sb.Append(" ]");
+            return new MarkupString(sb.ToString());
+        }
+        else
+        {
+            return new MarkupString(elementValue.ToString());
+        }
+    }
+}
