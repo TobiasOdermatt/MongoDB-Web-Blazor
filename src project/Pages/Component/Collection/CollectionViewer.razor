@@ -11,8 +11,10 @@
 
 @code{
     InsertDocumentModal? insertDocumentModal { get; set; }
+    SettingsCollectionModal? settingsCollectionModal { get; set; }
 }
 <InsertDocumentModal @ref="insertDocumentModal" dbName="@dbName" collectionName="@collectionName" />
+<SettingsCollectionModal @ref="settingsCollectionModal" dbName="@dbName" collectionName="@collectionName" attributeKeyList="@attributeKeyList" />
 
 <h2>View Collection: @collectionName</h2>
 <ul class="navbar nav ml-auto search-box">
@@ -37,7 +39,7 @@
     </li>
     
     <li class="ms-auto right-nav-side">
-        <button type="submit" class="form-control page form-control-sm btn btn-primary">
+        <button type="submit" class="form-control page form-control-sm btn btn-primary" @onclick="() => settingsCollectionModal?.Open()" @onclick:preventDefault>
             <img src="../icons/settings.svg" class="svgicon whitetoblacktheme"> Adjust collection
         </button>
     </li>

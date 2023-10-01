@@ -280,6 +280,34 @@ namespace MongoDB_Web.Controllers
             }
         }
 
+        public async Task<bool> RenameAttributeInCollectionAsync(string dbName, string collectionName, Dictionary<string, string> renameMap)
+        {
+            if (Client is null)
+                return false;
+
+            try
+            {
+                var db = Client.GetDatabase(dbName);
+                var collection = db.GetCollection<BsonDocument>(collectionName);
+
+                var updateDefs = renameMap.Select(entry =>
+                    Builders<BsonDocument>.Update.Rename(entry.Key, entry.Value)
+                ).ToArray();
+
+                var combined = Builders<BsonDocument>.Update.Combine(updateDefs);
+
+                await collection.UpdateManyAsync(new BsonDocument(), combined);
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                LogManager _ = new(LogType.Error, "User: " + Username + " has failed to change the attributes in " + collectionName + " from DB: " + dbName, e);
+                return false;
+            }
+        }
+
+
         public long GetTotalCount(string dbName, string collectionName, string selectedKey, string searchValue)
         {
             var filter = Builders<BsonDocument>.Filter.Empty;
