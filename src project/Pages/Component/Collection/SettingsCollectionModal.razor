@@ -1,0 +1,142 @@
+﻿@using Controllers
+@using Newtonsoft.Json;
+@using Data.OTP;
+@using Data.Helpers
+
+@if (ShowBackdrop)
+{
+    <div class="modal-backdrop fade @ModalClass" style="display: @ModalDisplay"></div>
+}
+
+@code {
+
+    string ConfirmationText { get; set; } = "";
+    bool? success = null;
+
+    @inject DBController dBController
+    Guid guid = Guid.NewGuid();
+    string ModalDisplay = "none;";
+    string ModalClass = "";
+    bool ShowBackdrop = false;
+    bool inProgress = false;
+
+    [Parameter]
+    public string? dbName { get; set; }
+
+    [Parameter]
+    public string? collectionName { get; set; }
+
+    [Parameter]
+    public List<string?>? attributeKeyList { get; set; }
+
+    private Dictionary<string, string> newRenameMap = new Dictionary<string, string>();
+
+    protected override void OnParametersSet()
+    {
+        attributeKeyList?.Remove("_id");
+        base.OnParametersSet();
+    }
+
+    public async void Open()
+    {
+        ModalDisplay = "block;";
+        await Task.Delay(100);
+        ModalClass = "Show";
+        ShowBackdrop = true;
+        StateHasChanged();
+    }
+
+    public async void Close()
+    {
+        ModalClass = "";
+        await Task.Delay(100);
+        ModalDisplay = "none";
+        ShowBackdrop = false;
+        StateHasChanged();
+    }
+
+    public async Task Save()
+    {
+        inProgress = true;
+        if (dbName == null || collectionName == null)
+            return;
+
+       success = await dBController.RenameAttributeInCollectionAsync(dbName,collectionName,newRenameMap);
+        inProgress = false;
+    }
+
+    public void HandleAttributeChange(string oldValue, string newValue)
+    {
+        if (oldValue != newValue)
+        {
+            if (newRenameMap.ContainsKey(oldValue))
+            {
+                newRenameMap[oldValue] = newValue;
+            }
+            else
+            {
+                newRenameMap.Add(oldValue, newValue);
+            }
+        }
+        else
+        {
+            if (newRenameMap.ContainsKey(oldValue))
+            {
+                newRenameMap.Remove(oldValue);
+            }
+        }
+    }
+
+
+}
+
+<div class="modal @ModalClass" tabindex="-1" role="dialog" style="display:@ModalDisplay">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content modal-dialog">
+            <div class="modal-header">
+                <h5 class="modal-title py-2">Collection config</h5>
+                <button type="button" class="btn-close blacktowhitetheme" data-dismiss="modal" @onclick="() => Close()" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>You can change here your attributes</p>
+                <ul class="list-group page">
+                    <li class="list-group-item page">
+                        <p>Attribut list</p>
+                    </li>
+                    @if(attributeKeyList == null || attributeKeyList.Count == 0)
+                    {
+                        <li class="list-group-item page">This collection has no attributes</li>
+                    }
+                    else
+                        @foreach (var attribut in attributeKeyList)
+                        {
+                            <li class="list-group-item page">
+                                <label for="@attribut" class="editable-label">
+                                    <input class="editable-input page" type="text" id="@attribut" value="@attribut" @onchange="@(e => HandleAttributeChange(attribut, e.Value.ToString()))">
+                                </label>
+                            </li>
+                        }
+                    <li class="list-group-item page"></li>
+                </ul>
+                <br />
+                @if (inProgress is true)
+                {
+                    <p>Please wait, collection proccesing....</p>
+                }
+
+                @if (success is true)
+                {
+                    <p class="text-success">Collection was edited successfully</p>
+                }
+                else if (success is false)
+                {
+                    <p class="text-danger">Ooops, something went wrong</p>
+                }
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-primary" @onclick="Save">Save</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="() => Close()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
