@@ -6,13 +6,13 @@
 @using Controllers
 @using MongoDB.Bson
 @using System.Web
-@using MongoDB_Web.Pages.Component.Util;
+@using MongoDB_Web.Pages.Component.Collection.Documents;
 @inject DBController DBController
 
 @code{
     InsertDocumentModal? insertDocumentModal { get; set; }
 }
-<InsertDocumentModal @ref="insertDocumentModal" dbName="@dbName" collectionName="@collectionName" />"
+<InsertDocumentModal @ref="insertDocumentModal" dbName="@dbName" collectionName="@collectionName" />
 
 <h2>View Collection: @collectionName</h2>
 <ul class="navbar nav ml-auto search-box">
