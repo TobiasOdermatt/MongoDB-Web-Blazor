@@ -3,10 +3,12 @@
     MongoDB_Web.Pages.Component.Dashboard.DeleteDBModal? deleteDBModal { get; set; }
     MongoDB_Web.Pages.Component.Util.DownloadModal? downloadModal{ get; set; }
     MongoDB_Web.Pages.Component.Util.MoveDataModal? moveModal { get; set; }
+    MongoDB_Web.Pages.Component.Dashboard.DetailDBModal? detailDBModal { get; set; }
 }
 <DeleteDBModal @ref="deleteDBModal" dbName="@name"/>
 <MongoDB_Web.Pages.Component.Util.DownloadModal @ref="downloadModal" dbName="@name" type="database" />
 <MongoDB_Web.Pages.Component.Util.MoveDataModal @ref="moveModal" dbName="@name" type="database" />
+<DetailDBModal @ref="detailDBModal" dbName="@name"/>
 <div class="col-lg-4 col-xl-3 col-md-5 mb-8 col-sm-12 py-3">
     <div class="shadow card h-100 rounded cardbox">
         <div class="card-header py-1 @(name == "admin" || name == "config" || name == "local" ? "danger-background" : "")">
@@ -30,6 +32,7 @@
                     Option
                 </button>
                 <ul class="dropdown-menu element-background">
+                    <li><a class="dropdown-item element-background" href="" @onclick="() => detailDBModal?.Open()" @onclick:preventDefault>Details DB</a></li>
                     <li><a class="dropdown-item element-background" href="" @onclick="() => moveModal?.Open()" @onclick:preventDefault>Copy DB</a></li>
                     <li><a class="dropdown-item element-background" href="" @onclick="() => downloadModal?.Open()" @onclick:preventDefault>Download DB</a></li>
                     @if (!(name == "admin" || name == "config" || name == "local"))

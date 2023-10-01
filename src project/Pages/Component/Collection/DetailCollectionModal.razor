@@ -1,0 +1,86 @@
+﻿@using Controllers
+@using MongoDB.Bson;
+@inject DBController dbController;
+
+<div class="modal @ModalClass" tabindex="-1" role="dialog" style="display:@ModalDisplay">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content modal-dialog">
+            <div class="modal-header">
+                <h5 class="modal-title py-2">Detail of collection @collectionName</h5>
+                <button type="button" class="btn-close blacktowhitetheme" data-dismiss="modal" @onclick="() => Close()" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                @if (stats != null)
+                {
+                    <table class="table page">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var element in stats)
+                            {
+                                @if(element.Name == "wiredTiger" || element.Name == "indexDetails")                                
+                                    continue;
+                                
+                                <tr>
+                                    <td>@element.Name</td>
+                                    <td>@element.Value</td>
+                               </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <p>Failed to fetch statistics.</p>
+                }
+            </div>
+            <div class="modal-footer py-2">
+
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="() => Close()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@if (ShowBackdrop)
+{
+    <div class="modal-backdrop fade @ModalClass" style="display: @ModalDisplay"></div>
+}
+
+@code {
+    [Parameter]
+    public string dbName { get; set; } = "";
+    [Parameter]
+    public string collectionName { get; set; } = "";
+    @inject DBController dBController
+    BsonDocument? stats;
+
+    Guid Guid = Guid.NewGuid();
+    string ModalDisplay = "none;";
+    string ModalClass = "";
+    bool ShowBackdrop = false;
+
+    public async void Open()
+    {
+        ModalDisplay = "block;";
+        stats = dbController.GetCollectionStatistics(dbName, collectionName);
+        await Task.Delay(100);
+        ModalClass = "Show";
+        ShowBackdrop = true;
+        StateHasChanged();
+    }
+
+    public async void Close()
+    {
+        ModalClass = "";
+        await Task.Delay(100);
+        ModalDisplay = "none";
+        ShowBackdrop = false;
+        StateHasChanged();
+    }
+}

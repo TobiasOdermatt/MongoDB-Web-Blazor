@@ -29,7 +29,7 @@ namespace MongoDB_Web.Controllers
             _hubContext = hubContext;
         }
 
-        public DBController() { }
+        public DBController() { Console.WriteLine("DBController loaded"); }
 
         public DBController(MongoClient db, string uuid, string username, string ipOfRequest, int batchCount)
         {
@@ -550,6 +550,80 @@ namespace MongoDB_Web.Controllers
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Get all statistics of a specific MongoDB database
+        /// </summary>
+        /// <param name="dbName">Database Name</param>
+        /// <returns>A BsonDocument containing all the database statistics or null if failed</returns>
+        public BsonDocument? GetDatabaseStatistics(string dbName)
+        {
+            if (Client is null)
+                return null;
+
+            try
+            {
+                var db = Client.GetDatabase(dbName);
+                var command = new BsonDocument { { "dbStats", 1 }, { "scale", 1 } };
+                var stats = db.RunCommand<BsonDocument>(command);
+                return stats;
+            }
+            catch (Exception e)
+            {
+                LogManager _ = new(LogType.Error, "User: " + Username + " failed to fetch statistics for DB: " + dbName, e);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Get all statistics of a specific MongoDB collection
+        /// </summary>
+        /// <param name="dbName">Database Name</param>
+        /// <param name="collectionName">Collection Name</param>
+        /// <returns>A BsonDocument containing all the collection statistics or null if failed</returns>
+        public BsonDocument? GetCollectionStatistics(string dbName, string collectionName)
+        {
+            if (Client is null)
+                return null;
+
+            try
+            {
+                var db = Client.GetDatabase(dbName);
+                var collection = db.GetCollection<BsonDocument>(collectionName);
+                var command = new BsonDocument { { "collStats", collectionName } };
+                var stats = db.RunCommand<BsonDocument>(command);
+                return stats;
+            }
+            catch (Exception e)
+            {
+                LogManager _ = new LogManager(LogType.Error, "User: " + Username + " failed to fetch statistics for collection: " + collectionName, e);
+                return null;
+            }
+        }
+
+
+        /// <summary>
+        /// Get global statistics of the MongoDB instance
+        /// </summary>
+        /// <returns>A BsonDocument containing all the server statistics or null if failed</returns>
+        public BsonDocument? GetGlobalStatistics()
+        {
+            if (Client is null)
+                return null;
+
+            try
+            {
+                var db = Client.GetDatabase("admin");
+                var command = new BsonDocument { { "serverStatus", 1 } };
+                var stats = db.RunCommand<BsonDocument>(command);
+                return stats;
+            }
+            catch (Exception e)
+            {
+                LogManager _ = new(LogType.Error, "User: " + Username + " failed to fetch global statistics.", e);
+                return null;
+            }
         }
 
         public async Task StreamCollectionExport(StreamWriter writer, string dbName, string collectionName, Guid guid)
