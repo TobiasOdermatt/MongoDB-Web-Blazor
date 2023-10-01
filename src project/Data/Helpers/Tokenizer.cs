@@ -1,28 +1,32 @@
-﻿using MongoDB.Bson;
-using MongoDB.Driver;
-using MongoDB_Web.Controllers;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
 
 namespace MongoDB_Web.Data.Helpers
 {
     public class Tokenizer
     {
-        private Dictionary<string?, object?> oldDoc;
-        private Dictionary<string?, object?> newDoc;
+        private Dictionary<string, object?> oldDoc;
+        private Dictionary<string, object?> newDoc;
 
-        string PreprocessJson(string json)
+
+        public Tokenizer()
+        {
+            oldDoc = new Dictionary<string, object?>();
+            newDoc = new Dictionary<string, object?>();
+        }
+
+
+        string preprocessJson(string json)
         {
             return json.Replace("ObjectId(", "").Replace(")", "");
         }
 
         public Dictionary<string, object> FindDifferencesInDocument(string OldDocument, string Document)
         {
-            string preprocessedOldDocument = PreprocessJson(OldDocument);
-            string preprocessedDocument = PreprocessJson(Document);
+            string preprocessedOldDocument = preprocessJson(OldDocument);
+            string preprocessedDocument = preprocessJson(Document);
 
-            oldDoc = JsonConvert.DeserializeObject<Dictionary<string?, object?>>(preprocessedOldDocument) ?? new Dictionary<string?, object?>();
-            newDoc = JsonConvert.DeserializeObject<Dictionary<string?, object?>>(preprocessedDocument) ?? new Dictionary<string?, object?>();
+            oldDoc = JsonConvert.DeserializeObject<Dictionary<string, object?>>(preprocessedOldDocument) ?? new Dictionary<string, object?>();
+            newDoc = JsonConvert.DeserializeObject<Dictionary<string, object?>>(preprocessedDocument) ?? new Dictionary<string, object?>();
 
             var differences = new Dictionary<string, object>();
 
@@ -30,7 +34,7 @@ namespace MongoDB_Web.Data.Helpers
             {
                 if (!oldDoc.ContainsKey(entry.Key) || (entry.Value != null && !entry.Value.Equals(oldDoc[entry.Key])))
                 {
-                    differences[entry.Key] = entry.Value;
+                    differences[entry.Key] = entry.Value == null ? "" : entry.Value;
                 }
 
             }
@@ -48,7 +52,7 @@ namespace MongoDB_Web.Data.Helpers
                 {
                     foreach (var newKey in newDoc.Keys)
                     {
-                        if (oldDoc[oldKey].Equals(newDoc[newKey]))
+                        if (object.Equals(oldDoc[oldKey], newDoc[newKey]))
                         {
                             renameMap[oldKey] = newKey;
                         }
@@ -62,13 +66,16 @@ namespace MongoDB_Web.Data.Helpers
 
         public string? GetObjectId()
         {
-            if (oldDoc.ContainsKey("_id") && oldDoc["_id"] != null)
+            if (oldDoc.ContainsKey("_id"))
             {
-                return oldDoc["_id"].ToString();
+                object? id = oldDoc["_id"];
+                if (id != null)
+                {
+                    return id.ToString();
+                }
             }
             return null;
         }
-
     }
 
 }
