@@ -6,7 +6,7 @@
         <div class="modal-content modal-dialog">
             <div class="modal-header">
                 <h5 class="modal-title py-2">Are you absolutely sure?</h5>
-                <button type="button" class="btn-close blacktowhitetheme" data-dismiss="modal" @onclick="() => CloseAsync()" aria-label="Close"></button>
+                <button type="button" class="btn-close blacktowhitetheme" data-dismiss="modal" @onclick="() => Close()" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <p>
@@ -36,7 +36,7 @@
                     <button type="button" class="btn btn-danger" disabled>Delete Collection</button>
 
                 }
-                <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="() => CloseAsync()">Cancel</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="() => Close()">Cancel</button>
             </div>
         </div>
     </div>
@@ -56,14 +56,13 @@
     private string ConfirmationText { get; set; } = "";
     private bool? success = null;
 
-    [Inject]
-    private DBController DbController { get; set; }
+    @inject DBController dBController;
     private Guid Guid = Guid.NewGuid();
     private string ModalDisplay = "none;";
     private string ModalClass = "";
     private bool ShowBackdrop = false;
 
-    public async Task OpenAsync()
+    public async void Open()
     {
         ModalDisplay = "block;";
         await Task.Delay(100);
@@ -72,7 +71,7 @@
         StateHasChanged();
     }
 
-    public async Task CloseAsync()
+    public async void Close()
     {
         ModalClass = "";
         await Task.Delay(100);
@@ -83,7 +82,7 @@
 
     private async Task DeleteCollectionAsync()
     {
-        success = DbController.DeleteCollection(DbName, CollectionName);
+        success = dBController.DeleteCollection(DbName, CollectionName);
         if (success is true)
         {
             await Task.Delay(1100);
