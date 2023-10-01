@@ -62,20 +62,6 @@ namespace MongoDB_Web.Data.Helpers
 
             return renameMap;
         }
-
-
-        public string? GetObjectId()
-        {
-            if (oldDoc.ContainsKey("_id"))
-            {
-                object? id = oldDoc["_id"];
-                if (id != null)
-                {
-                    return id.ToString();
-                }
-            }
-            return null;
-        }
     }
 
 }
