@@ -3,6 +3,7 @@ using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Bson.Serialization;
+using Newtonsoft.Json;
 using MongoDB.Driver;
 using static MongoDB_Web.Data.Helpers.LogManager;
 using Newtonsoft.Json.Linq;
@@ -464,6 +465,41 @@ namespace MongoDB_Web.Controllers
 
             return overallResult;
         }
+
+        /// <summary>
+        /// Execute a MongoDB query
+        /// </summary>
+        /// <param name="dbName">Database name</param>
+        /// <param name="collectionName">Collection name</param>
+        /// <param name="query">MongoDB query string</param>
+        /// <returns>String containing the result of the query</returns>
+        public async Task<string> ExecuteMongoQuery(string dbName, string collectionName, string query)
+        {
+            if (Client is null)
+                return "MongoDB client is not initialized.";
+
+            string result;
+            try
+            {
+                var db = Client.GetDatabase(dbName);
+                var collection = db.GetCollection<BsonDocument>(collectionName);
+
+                var filter = BsonDocument.Parse(query);
+                var findResult = await collection.Find(filter).ToListAsync();
+
+                result = Newtonsoft.Json.JsonConvert.SerializeObject(findResult);
+
+                LogManager _ = new(LogType.Info, $"User: {Username} has executed the query: {query} on DB: {dbName}, Collection: {collectionName}");
+            }
+            catch (Exception e)
+            {
+                LogManager _ = new(LogType.Error, $"User: {Username} has failed to execute the query: {query} on DB: {dbName}, Collection: {collectionName} {e}");
+                result = "Error: " + e.Message;
+            }
+
+            return result;
+        }
+
 
         /// <summary>
         /// Delete a specific Collection from a Database
