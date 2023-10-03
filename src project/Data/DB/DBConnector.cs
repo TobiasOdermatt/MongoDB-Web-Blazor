@@ -45,62 +45,62 @@ namespace MongoDB_Web.Data.DB
         {
             if (allowedIp != "*" && allowedIp != ipOfRequest)
             {
-                _ = new LogManager(LogType.Error, "User; " + username + " has failed to connect to the DB, IP: " + ipOfRequest + " is not allowed");
+                LogError($"User; {username} has failed to connect to the DB, IP: {ipOfRequest} is not allowed");
                 return null;
             }
 
-            string connectionString = getConnectionString(username, password);
             if (DBController.UUID == uuid && DBController.IPofRequest == ipOfRequest)
                 return DBController.Client;
+
+            string connectionString = getConnectionString(username, password);
 
             try
             {
                 MongoClient mongoClient = new(connectionString);
                 DBController dBController = new(mongoClient, uuid, username, ipOfRequest, batchCount);
 
-                if (dBController.ListAllDatabases() == null)
-                {
-                    throw new Exception("Failed to list all databases");
-                }
-                else
+                if (dBController.ListAllDatabases() != null)
                 {
                     return mongoClient;
                 }
+
+                throw new Exception("Failed to list all databases");
             }
             catch (Exception e)
             {
-                _ = new LogManager(LogType.Error, "User; " + username + " has failed to connect to the DB ", e);
+                LogError($"User; {username} has failed to connect to the DB", e);
                 return null;
             }
         }
 
+        private void LogError(string message, Exception? e = null)
+        {
+            _ = new LogManager(LogType.Error, message, e);
+        }
+
+
         string getConnectionString(string username, string password)
         {
-            if (customString != "" && customString is not null) 
-                 return customString; 
+            if (!string.IsNullOrEmpty(customString))
+                return customString;
 
-            if (useAuthorization)          
-                return $"mongodb://{username}:{password}@{dbHost}:{dbPort}/{dbRules}";
-            
-            return $"mongodb://{dbHost}:{dbPort}";
+            return useAuthorization
+                ? $"mongodb://{username}:{password}@{dbHost}:{dbPort}/{dbRules}"
+                : $"mongodb://{dbHost}:{dbPort}";
         }
 
 
         /// <summary>
-        /// Test if the user see any db
+        /// Test if the user can see any databases.
         /// </summary>
-        /// <returns>If dbs ey</returns>
+        /// <returns>True if databases exist, otherwise false.</returns>
         public bool ListAllDatabasesTest()
         {
             try
             {
-                List<BsonDocument>? dbList = new();
-                dbList = Client?.ListDatabases().ToList();
-                if(dbList == null)
-                    return false;
-                return true;
+                return Client?.ListDatabases().Any() == true;
             }
-            catch (Exception e)
+            catch
             {
                 return false;
             }

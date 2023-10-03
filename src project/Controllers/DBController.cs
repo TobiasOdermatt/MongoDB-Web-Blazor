@@ -9,8 +9,7 @@ using Newtonsoft.Json.Linq;
 using Bogus;
 using Microsoft.AspNetCore.SignalR;
 using MongoDB_Web.Data.Hubs;
-using System;
-using Bogus.DataSets;
+
 
 namespace MongoDB_Web.Controllers
 {
@@ -310,6 +309,9 @@ namespace MongoDB_Web.Controllers
 
         public long GetTotalCount(string dbName, string collectionName, string selectedKey, string searchValue)
         {
+            if (Client is null)
+                return -1;
+
             var filter = Builders<BsonDocument>.Filter.Empty;
 
             var database = Client.GetDatabase(dbName);
@@ -377,6 +379,9 @@ namespace MongoDB_Web.Controllers
 
         public int GetCollectionCount(string dbName, string collectionName, string selectedKey, string searchValue)
         {
+            if (Client is null)
+                return -1;
+
             var filter = Builders<BsonDocument>.Filter.Empty;
             if (!string.IsNullOrWhiteSpace(selectedKey) && !string.IsNullOrWhiteSpace(searchValue))
             {
