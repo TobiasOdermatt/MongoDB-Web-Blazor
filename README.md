@@ -14,4 +14,23 @@ OnlineMongoDBManagement is a web-based application that allows users to manage t
 - Built-in login (OTP) (optional)
 - Activity logs (optional)
 
- All the preferences wich services you wanna include is in the config.json
+ All the preferences wich services you wanna include is in the config.properties
+
+ Certainly, here's the content you can put in your GitHub documentation in Markdown format:
+
+## Installation Guide for Docker
+
+## Build and Run Docker Container
+Run the following commands:
+
+```
+docker build -t mongodb-web-client .
+docker run -p 8080:80 -d mongodb-web-client
+```
+
+## Access MongoDB from Host
+If you wish to connect to your MongoDB server from your host machine, update the `config.properties` file's database host to:
+
+```
+host.docker.internal
+```
