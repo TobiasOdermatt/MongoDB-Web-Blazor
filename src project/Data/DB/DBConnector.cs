@@ -45,7 +45,7 @@ namespace MongoDB_Web.Data.DB
         {
             if (allowedIp != "*" && allowedIp != ipOfRequest)
             {
-                LogError($"User; {username} has failed to connect to the DB, IP: {ipOfRequest} is not allowed");
+                log($"User; {username} has failed to connect to the DB, IP: {ipOfRequest} is not allowed");
                 return null;
             }
 
@@ -68,12 +68,12 @@ namespace MongoDB_Web.Data.DB
             }
             catch (Exception e)
             {
-                LogError($"User; {username} has failed to connect to the DB", e);
+                log($"User; {username} has failed to connect to the DB", e);
                 return null;
             }
         }
 
-        private void LogError(string message, Exception? e = null)
+        private void log(string message, Exception? e = null)
         {
             _ = new LogManager(LogType.Error, message, e);
         }
