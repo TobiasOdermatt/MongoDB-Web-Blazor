@@ -1,0 +1,7 @@
+﻿.textarea-success {
+    border: 2px solid green;
+}
+
+.textarea-failure {
+    border: 2px solid red;
+}

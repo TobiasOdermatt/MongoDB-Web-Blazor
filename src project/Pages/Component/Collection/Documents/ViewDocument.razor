@@ -2,12 +2,14 @@
 @using Data.Helpers
 <div class="row align-items-center">
     <div class="col">
-<textarea id="@ObjectId" @oninput="OnInputChange" autocomplete="off" class="form-control page">@Document</textarea>
-
+<textarea id="@ObjectId" @oninput="OnInputChange" autocomplete="off" class="form-control page @GetBorderClass()">@Document</textarea>
     </div>
-    <div class="col-auto">
-        <button class="btn btn-primary" @onclick="SaveCollection" disabled="@IsButtonDisabled">Save</button>
+    @if (ShowButton)
+    {
+        <div class="col-auto">
+            <button class="btn btn-primary" @onclick="SaveCollection">Save</button>
     </div>
+    }
 </div>
 <br />
 
@@ -22,8 +24,9 @@
     [Parameter]
     public string ObjectId { get; set; } = "";
     public string OldDocument = "";
-    public bool IsButtonDisabled = true;
+    public bool ShowButton = true;
     public bool? savingSuccess = null;
+    public bool? success = null;
 
     protected override void OnParametersSet()
     {
@@ -35,26 +38,38 @@
     {
         if (Document != OldDocument)
         {
-            Tokenizer tokenizer = new();
-            var differences = tokenizer.FindDifferencesInDocument(OldDocument, Document);
-            var renameMap = tokenizer.FindRenameMap();
-
-            if (differences.Count > 0 || renameMap.Count > 0)
+            try
             {
-                await dbController.UpdateMongoDB(dbName, collectionName, differences, renameMap, ObjectId);
+                Tokenizer tokenizer = new();
+                var differences = tokenizer.FindDifferencesInDocument(OldDocument, Document);
+                var renameMap = tokenizer.FindRenameMap();
+
+                if (differences.Count > 0 || renameMap.Count > 0)
+                {
+                    success = await dbController.UpdateMongoDB(dbName, collectionName, differences, renameMap, ObjectId);
+                }
+                ShowButton = false;
             }
-            IsButtonDisabled = true;
+            catch (Exception e)
+            {
+                success = false;
+            }
         }
     }
 
     private void OnInputChange(ChangeEventArgs e)
     {
-        Document = e.Value.ToString();
+        Document = e.Value.ToString();    
         UpdateButtonState();
     }
 
     private void UpdateButtonState()
     {
-        IsButtonDisabled = (Document == OldDocument);
+        ShowButton = (Document != OldDocument);
+    }
+
+    private string GetBorderClass()
+    {
+        return success == true ? "textarea-success" : success == false ? "textarea-failure" : "";
     }
 }
