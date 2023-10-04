@@ -8,6 +8,9 @@ async function startConnection() {
     connection.on("ReceiveProgressCollection", function (totalDocuments, processedDocuments, progress, guid, actionType) {
         displayStatusCollectionDatabase(totalDocuments, processedDocuments, progress, guid, "documents", actionType)
     });
+    connection.on("ReceiveProgress", function (total, processed, progress, guid, entity) {
+        displayStatusProccessing(total, processed, progress, guid, entity)
+    });
 
     try {
         await connection.start();
@@ -25,6 +28,14 @@ function changeProgressBar(progress, guid) {
     progressBar.classList.remove("d-none")
     progressBar.classList.add("d-block")
     progressBar.value = progress;
+}
+
+function displayStatusProccessing(total, processed, progress, guid, entity) {
+    const progressText = document.querySelector(`[data-guid="${guid}"][id="status-text"]`);
+    const text = document.querySelector(`[data-guid="${guid}"][id="text"]`);
+
+    progressText.innerHTML = processed.toFixed(1) + " / " + total.toFixed(1) + " "+entity;
+    changeProgressBar(progress, guid);
 }
 
 function displayStatusCollectionDatabase(total, processed, progress, guid, type, actionType) {

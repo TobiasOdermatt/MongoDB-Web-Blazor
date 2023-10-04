@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.JSInterop;
+using MongoDB_Web.Data.Helpers;
 using MongoDB_Web.Data.OTP;
+using Newtonsoft.Json.Linq;
 using System.Net.Mime;
 
 namespace MongoDB_Web.Controllers
@@ -13,7 +15,6 @@ namespace MongoDB_Web.Controllers
         [HttpGet("DownloadFile")]
         public IActionResult DownloadFile(string fileName)
         {
-
             OTPAuthCookieManagement AuthManager = new(HttpContext);
             if (!AuthManager.IsCookieValid())
                 return NotFound();
@@ -35,6 +36,61 @@ namespace MongoDB_Web.Controllers
             catch (Exception ex)
             {
                 stream.Close();
+                return StatusCode(500, $"Internal server error: {ex}");
+            }
+        }
+
+        [HttpPost("UploadFile")]
+        public IActionResult UploadFile(IFormFile file)
+        {
+            int chunkIndex;
+            int totalChunks;
+
+            if (!int.TryParse(HttpContext.Request.Form["chunkIndex"], out chunkIndex))
+                chunkIndex = 0;
+
+            if (!int.TryParse(HttpContext.Request.Form["totalChunks"], out totalChunks))
+                totalChunks = 0;
+
+            string guid = HttpContext.Request.Form["guid"].ToString();
+
+                OTPAuthCookieManagement AuthManager = new(HttpContext);
+            if (!AuthManager.IsCookieValid())
+                return NotFound();
+
+            string? userUUID = AuthManager.GetUUID();
+
+            if (file == null || file.Length == 0)
+                return BadRequest("Invalid file");
+
+            string userUploadPath = Path.Combine(userStoragePath, userUUID + "/" + "uploads" + "/");
+
+            if (!Directory.Exists(userUploadPath))
+                Directory.CreateDirectory(userUploadPath);
+
+            string fullPath = userUploadPath + file.FileName;
+
+            if (!System.IO.File.Exists(fullPath))
+                System.IO.File.Create(fullPath).Close();
+
+
+            FileMode fileMode = (chunkIndex == 0) ? FileMode.Create : FileMode.Append;
+
+            try
+            {
+                using (FileStream stream = new(fullPath, fileMode))
+                    file.CopyTo(stream);
+
+
+                if (chunkIndex == totalChunks - 1)
+                {
+                    return Ok();
+                }
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
                 return StatusCode(500, $"Internal server error: {ex}");
             }
         }

@@ -1,9 +1,11 @@
 ﻿@using MongoDB_Web.Data.Helpers;
 @using Controllers
+@using Data.OTP;
 @using Newtonsoft.Json.Linq;
+@using System.Text.Json;
 @inject IJSRuntime JSRuntime;
 @inject DBController DBController;
-
+@inject ImportManager ImportManager;
 <div class="modal @modalClass" tabindex="-1" role="dialog" style="display:@modalDisplay">
     <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content modal-dialog">
@@ -24,6 +26,16 @@
                     <label for="Input" class="form-label">Database name</label>
                     <input type="text" class="form-control page" id="Input" @bind="@dbName" required>
                 </div>
+
+                <div class="mb-3" style="display:@progressSectionDisplay">
+                    <h5>@state</h5>
+                    <progress id="ProgressBar" data-guid="@guid" max="100" value="0" style="min-width: 350px;" class="d-none"></progress><br />
+                    <p id="status-text" data-guid="@guid"></p>
+                    <p id="text" data-guid="@guid">
+                        Please wait, dont leave this site
+                    </p>
+                </div>
+
                 <div class="mb-3" style="display:@detailSectionDisplay">
                     <label class="form-label d-inline">
                         <span class="mr-2">Total:</span>
@@ -31,14 +43,14 @@
                     </label>
                     <label class="float-end">
                         <span>Size:</span>
-                        <span class="font-weight-bold">@fileSize KB</span>
+                        <span class="font-weight-bold">@fileSize.ToString("F2") MB</span>
                     </label>
                     <br />
                     @if (collectionsNames != null)
                     {
                         <ul class="list-group page">
                             <li class="list-group-item page">
-                                <input type="checkbox" id="selectAll" @onchange="selectAllChanged" />
+                                <input type="checkbox" id="selectAll" @onchange="selectAllChanged" checked/>
                                 <label for="selectAll">@selectAllText</label>
                             </li>
                             @foreach (var collection in collectionsNames)
@@ -62,7 +74,7 @@
 
                     }
                     <input type="submit" class="btn btn-primary btn-upload float-start" value="Select another .json file" @onclick="chooseAnother">
-                    <input type="submit" class="btn btn-primary btn-upload" value="Upload to mongoDB" @onclick="uploadDB">
+                    <input type="submit" class="btn btn-primary btn-upload" value="Import to MongoDB" @onclick="importDB">
                 </div>
                 <div class="mb-3 py-2">
                     <br />
@@ -82,19 +94,28 @@
 }
 
 @code {
+    [Inject]
+    IHttpContextAccessor? HttpContextAccessor { get; set; }
     Guid guid = Guid.NewGuid();
     string modalDisplay = "none;";
     string modalClass = "";
     bool showBackdrop = false;
 
+    string state = "";
     string messageDisplay = "none;";
     string message = "";
     string messageTyp = "";
     string uploadSectionDisplay = "block;";
     string detailSectionDisplay = "none;";
+    string progressSectionDisplay = "none;";
+    string? userUUID = "";
 
     string? dbName;
+    string? fileName;
+    string? fullPath;
     double fileSize;
+
+    string userStoragePath = $"{Directory.GetCurrentDirectory()}" + @"\UserStorage\";
 
     List<string> collectionsNames = new List<string>();
     List<string> checkedCollectionsNames = new List<string>();
@@ -105,7 +126,9 @@
 
     protected override void OnInitialized()
     {
-        checkedCollectionsNames = collectionsNames.ToList();
+        if (HttpContextAccessor?.HttpContext == null) return;
+        OTPAuthCookieManagement AuthManager = new(HttpContextAccessor.HttpContext);
+        userUUID = AuthManager.GetUUID();
     }
 
     void adoptOidChange(ChangeEventArgs e)
@@ -188,72 +211,68 @@
 
     public IJSObjectReference? uploadedFile;
 
-    async Task validateFile()
+    private async Task validateFile()
     {
-        try
+        JsonElement fileInfo = await JSRuntime.InvokeAsync<JsonElement>("dragDropFunctions.getFile", "file-input");
+
+        fileSize = fileInfo.GetProperty("size").GetInt64();
+        fileSize = (fileSize / (1024 * 1024));
+        string fileName = fileInfo.GetProperty("name").ToString();
+
+        string fileExtension = fileName.Split('.').Last();
+        if (fileExtension != "json")
         {
-            uploadedFile = await JSRuntime.InvokeAsync<IJSObjectReference>("dragDropFunctions.getFile", "file-input");
-
-            string fileExtension = await uploadedFile.InvokeAsync<string>("getExtension");
-
-            if (fileExtension != ".json")
-            {
-                displayError("Please upload a .json file");
-            }
-
-            // Get the file content as a byte array
-            byte[] fileContent = await JSRuntime.InvokeAsync<byte[]>("dragDropFunctions.readFileContentsAsByteArray", "file-input");
-            fileSize = Math.Round(fileContent.Length / 1024.0, 3); // In KB
-
-            (dbName, collectionsNames) = ImportManager.ProcessDBImportAsync(fileContent);
-            uploadSectionDisplay = "none;";
-            detailSectionDisplay = "block;";
-
-            if (DBController.CheckIfDBExist(dbName))
-            {
-                displayWarning("Attention: The database: '" + dbName + "' currently exists. Modify the collection names if they are the same as the existing ones.");
-            }
-            StateHasChanged();
-
+            displayError("File extension is not .json");
         }
-        catch (Exception ex)
+        uploadSectionDisplay = "none";
+        progressSectionDisplay = "block";
+        state = "File upload";
+        StateHasChanged();
+        fileName = await JSRuntime.InvokeAsync<string>("startChunkUpload", "file-input", guid);
+
+        if (String.IsNullOrEmpty(fileName) || String.IsNullOrEmpty(userUUID))
         {
-            Console.WriteLine(ex.Message);
+            displayError("File upload failed");
+            return;
+        }
+
+        fullPath = Path.Combine(userStoragePath, userUUID + "/" + "uploads" + "/"+fileName);
+        state = "File proccesing";
+        StateHasChanged();
+
+        (dbName, collectionsNames) = await ImportManager.ProcessDBImportAsync(fullPath, guid);
+        checkedCollectionsNames = collectionsNames.ToList();
+
+        checkIfUploadIsValid();
+        progressSectionDisplay = "none";
+        detailSectionDisplay = "block";
+        StateHasChanged();
+    }
+
+    void checkIfUploadIsValid()
+    {
+        if (DBController.CheckIfDBExist(dbName))
+        {
+            displayWarning("Attention: The database: '" + dbName + "' currently exists. Modify the collection names if they are the same as the existing ones.");
         }
     }
 
-    async void uploadDB()
+    async void importDB()
     {
-        if (!string.IsNullOrEmpty(dbName))
+        progressSectionDisplay = "block";
+        detailSectionDisplay = "none";
+        state = "File importing";
+        StateHasChanged();
+
+        bool success = await ImportManager.ImportCollectionsAsync(dbName, checkedCollectionsNames, collectionNameChanges, adoptOid, DBController, fullPath, guid);
+        if(success)
         {
-            if (DBController.CheckIfDBExist(dbName))
-            {
-
-            }
-            else
-            {
-
-                bool success = ImportManager.ImportCollectionsAsync(dbName, checkedCollectionsNames, collectionNameChanges, adoptOid, DBController);
-
-                if (success)
-                {
-                    displaySuccess("Database: '" + dbName + "' was successfully imported.");
-                    await Task.Delay(1100);
-                    @inject NavigationManager navigationManager;
-                    navigationManager.NavigateTo(navigationManager.Uri, forceLoad: true);
-                }
-                else
-                {
-                    displayError("There was an error while importing the database.");
-                }
-            }
+            displaySuccess("Database imported successfully");
         }
         else
         {
-            displayError("database name cannot be blank.");
+            displayError("Database import failed");
         }
-
-        StateHasChanged();
     }
 
     void displayError(string _message)

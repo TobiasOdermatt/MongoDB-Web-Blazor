@@ -417,27 +417,35 @@ namespace MongoDB_Web.Controllers
             }
         }
 
-        public async Task UpdateMongoDB(string dbName, string collectionName, Dictionary<string, object> differences, Dictionary<string, string> renameMap, string id)
+        public async Task<bool> UpdateMongoDB(string dbName, string collectionName, Dictionary<string, object> differences, Dictionary<string, string> renameMap, string id)
         {
             if (Client == null)
-                return;
+                return false;
 
-            var database = Client.GetDatabase(dbName);
-            var collection = database.GetCollection<BsonDocument>(collectionName);
-
-            var filter = Builders<BsonDocument>.Filter.Eq("_id", new ObjectId(id));
-            var updateDef = Builders<BsonDocument>.Update;
-
-            foreach (var rename in renameMap)
+            try
             {
-                var renameDefinition = updateDef.Rename(rename.Key, rename.Value);
-                await collection.UpdateOneAsync(filter, renameDefinition);
+                var database = Client.GetDatabase(dbName);
+                var collection = database.GetCollection<BsonDocument>(collectionName);
+
+                var filter = Builders<BsonDocument>.Filter.Eq("_id", new ObjectId(id));
+                var updateDef = Builders<BsonDocument>.Update;
+
+                foreach (var rename in renameMap)
+                {
+                    var renameDefinition = updateDef.Rename(rename.Key, rename.Value);
+                    await collection.UpdateOneAsync(filter, renameDefinition);
+                }
+
+                foreach (var diff in differences)
+                {
+                    var updateDefinition = updateDef.Set(diff.Key, diff.Value);
+                    await collection.UpdateOneAsync(filter, updateDefinition);
+                }
+                return true;
             }
-
-            foreach (var diff in differences)
+            catch
             {
-                var updateDefinition = updateDef.Set(diff.Key, diff.Value);
-                await collection.UpdateOneAsync(filter, updateDefinition);
+                return false;
             }
         }
 
@@ -537,9 +545,9 @@ namespace MongoDB_Web.Controllers
         /// </summary>
         /// <param name="dbName">Database name</param>
         /// <returns>bool will be returned</returns>
-        public bool CheckIfDBExist(string dbName)
+        public bool CheckIfDBExist(string? dbName)
         {
-            if (Client is null)
+            if (Client is null || dbName is null)
                 return false;
 
             bool result;
@@ -820,7 +828,7 @@ namespace MongoDB_Web.Controllers
             }
         }
 
-        public bool UploadJSON(string dbName, string collectionName, JToken json, bool adaptOid)
+        public async Task<bool> UploadJSONAsync(string dbName, string collectionName, JToken json, bool adaptOid)
         {
             if (Client is null)
                 return false;
@@ -829,6 +837,7 @@ namespace MongoDB_Web.Controllers
             {
                 var db = Client.GetDatabase(dbName);
                 var collection = db.GetCollection<BsonDocument>(collectionName);
+                List<BsonDocument> batch = new List<BsonDocument>();
 
                 if (json is JArray jsonArray)
                 {
@@ -840,7 +849,18 @@ namespace MongoDB_Web.Controllers
                         }
 
                         var document = BsonDocument.Parse(jsonObject.ToString());
-                        collection.InsertOne(document);
+                        batch.Add(document);
+
+                        if (batch.Count >= BatchCount)
+                        {
+                            await collection.InsertManyAsync(batch);
+                            batch.Clear();
+                        }
+                    }
+
+                    if (batch.Count > 0)
+                    {
+                        await collection.InsertManyAsync(batch);
                     }
                 }
                 else
@@ -852,9 +872,8 @@ namespace MongoDB_Web.Controllers
                     }
 
                     var document = BsonDocument.Parse(jobject.ToString());
-                    collection.InsertOne(document);
+                    await collection.InsertOneAsync(document);
                 }
-
                 return true;
             }
             catch

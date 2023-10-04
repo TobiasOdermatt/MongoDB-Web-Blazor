@@ -1,6 +1,3 @@
-using Microsoft.AspNetCore.ResponseCompression;
-using Microsoft.AspNetCore.SignalR;
-using MongoDB.Driver;
 using MongoDB_Web.Controllers;
 using MongoDB_Web.Data.Helpers;
 using MongoDB_Web.Data.Hubs;
@@ -22,6 +19,7 @@ builder.Services.AddSingleton<ConfigManager>(configManager);
 OTPFileManagement OTP = new();
 OTP.CleanUpOTPFiles();
 builder.Services.AddScoped<DBController>();
+builder.Services.AddScoped<ImportManager>();
 builder.Services.AddSingleton<AppData>();
 builder.Services.AddSingleton<LogManager>();
 LogManager log = new(LogType.Info, "Server started");
