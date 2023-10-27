@@ -75,7 +75,10 @@ namespace MongoDB_Web.Data.DB
 
         private void log(string message, Exception? e = null)
         {
-            _ = new LogManager(LogType.Error, message, e);
+            if(e == null)
+                _ = new LogManager(LogType.Error, message);
+            else
+                _ = new LogManager(LogType.Error, message, e);
         }
 
 

@@ -13,11 +13,10 @@
 <CreateDBModal @ref="createDBModal"></CreateDBModal>
 <ImportDBModal @ref="importDBModal"></ImportDBModal>
 <div class="top-div">
-    <h2>List of all databases</h2>
+    <h3>List of all databases</h3>
     @{
         List<MongoDB.Bson.BsonDocument>? dbList = listAllDBs();
         int count = dbList != null ? dbList.Count : 0;
-        int CollectionAmount = 0;
     }
     <p class="second-text-color resultText">@count Databases found</p>
     <button type="button" @onclick="() => createDBModal?.Open()" class="btn btn-primary navbutton float-end">Create database</button>
@@ -30,9 +29,12 @@
         @foreach (MongoDB.Bson.BsonDocument db in dbList)
         {
             if (!string.IsNullOrEmpty(db.GetValue("name").ToString()))
-                CollectionAmount = getCollectionAmount(db.GetValue("name").AsString);
-            <ShowDBCard DBObject=db CollectionAmount=CollectionAmount />
+            {
+                var stats = getDatabaseStatistics(db.GetValue("name").AsString);
+                <ShowDBCard DBObject="@db" Stats="@stats" />
+            }
         }
+
     }
 </div>
 @code {
@@ -46,8 +48,8 @@
         return dbs;
     }
 
-    int getCollectionAmount(string dbName)
+    MongoDB.Bson.BsonDocument? getDatabaseStatistics(string dbName)
     {
-        return DBController.GetNumberOfCollections(dbName);
+       return DBController.GetDatabaseStatistics(dbName);
     }
 }

@@ -1,10 +1,12 @@
 ﻿.search-box {
-    background-color: var(--fifth-color);
+    background-color: var(--navbar-color) !important;
     padding-left: 8px;
 }
 
-.navbar{
+.navbar {
     justify-content: left;
+    border-radius: 5px;
+    padding-bottom: 15px;
 }
 
 button {

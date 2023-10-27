@@ -1,0 +1,56 @@
+﻿@page "/User_session_control"
+@using MongoDB_Web.Data.OTP
+@using MongoDB_Web.Objects
+<h3>Active sessions</h3>
+<p class="second-text-color resultText">@countSessions Sessions found</p>
+<table>
+    <thead>
+        <tr>
+            <th>User ID</th>
+            <th>Mongo Username</th>
+            <th>Created</th>
+            <th>Expire</th>
+            <th>Last Access</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var otp in otpList)
+        {
+            <tr>
+                <td>@otp.UUID</td>
+                <td>@otp.Username</td>
+                <td>@otp.Created</td>
+                <td>@otp.Expire</td>
+                <td>@otp.LastAccess</td>
+                <td><button @onclick="() => DeleteOTP(otp)" class="btn-primary btn">Delete</button></td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    @inject OTPFileManagement otpFileManagement;
+    @inject AuthManager authManager;
+    @inject NavigationManager navigationManager;
+    List<OTPFileObject> otpList = new List<OTPFileObject>();
+
+    int countSessions = 0;
+
+    protected override Task OnInitializedAsync()
+    {
+        if (!authManager.IsAdmin())
+            navigationManager.NavigateTo("/Dashboard");
+
+        otpList = otpFileManagement.GetAllOTPFiles();
+        countSessions = otpList.Count;
+
+        return base.OnInitializedAsync();
+    }
+
+    private void DeleteOTP(OTPFileObject otp)
+    {
+        otpFileManagement.DeleteOTPFile(otp.UUID.ToString());
+        otpList.Remove(otp);
+    }
+}

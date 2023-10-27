@@ -1,4 +1,5 @@
-﻿@code {
+﻿@using Data.OTP;
+@code {
     MongoDB_Web.Pages.Component.Util.GenerateTestDBModal? generateTestDBModal { get; set; }
     MongoDB_Web.Pages.Component.Util.DeleteAllDBModal? deleteAllDBModal { get; set; }
 }
@@ -15,5 +16,13 @@
 <h5 class="text-danger">Delete all database!</h5>
 <button class="btn btn-danger" @onclick="() => deleteAllDBModal?.Open()">Delete</button>
 @code {
+@inject AuthManager authManager;
+@inject NavigationManager navigationManager;
+    protected override Task OnInitializedAsync()
+    {
+        if (!authManager.IsAdmin())
+            navigationManager.NavigateTo("/Dashboard");
 
+        return base.OnInitializedAsync();
+    }
 }

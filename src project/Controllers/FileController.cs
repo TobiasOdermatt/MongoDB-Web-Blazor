@@ -1,8 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.JSInterop;
-using MongoDB_Web.Data.Helpers;
 using MongoDB_Web.Data.OTP;
-using Newtonsoft.Json.Linq;
 using System.Net.Mime;
 
 namespace MongoDB_Web.Controllers
@@ -11,15 +8,20 @@ namespace MongoDB_Web.Controllers
     public class FileController : ControllerBase
     {
         string userStoragePath = $"{Directory.GetCurrentDirectory()}" + @"\UserStorage\";
+        private readonly AuthManager _authManager;
+
+        public FileController(AuthManager otpAuthCookieManagement, OTPFileManagement otpFileManagement)
+        {
+            _authManager = otpAuthCookieManagement;
+        }
 
         [HttpGet("DownloadFile")]
         public IActionResult DownloadFile(string fileName)
         {
-            OTPAuthCookieManagement AuthManager = new(HttpContext);
-            if (!AuthManager.IsCookieValid())
+            if (!_authManager.IsCookieValid())
                 return NotFound();
 
-            string? userUUID = AuthManager.GetUUID();
+            string? userUUID = _authManager.GetUUID();
         
             string fullPath = Path.Combine(userStoragePath, userUUID+"/"+"downloads"+"/"+fileName);
 
@@ -54,11 +56,10 @@ namespace MongoDB_Web.Controllers
 
             string guid = HttpContext.Request.Form["guid"].ToString();
 
-                OTPAuthCookieManagement AuthManager = new(HttpContext);
-            if (!AuthManager.IsCookieValid())
+            if (!_authManager.IsCookieValid())
                 return NotFound();
 
-            string? userUUID = AuthManager.GetUUID();
+            string? userUUID = _authManager.GetUUID();
 
             if (file == null || file.Length == 0)
                 return BadRequest("Invalid file");

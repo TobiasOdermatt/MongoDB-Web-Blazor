@@ -12,7 +12,7 @@
     <main>
         <div class="top-row px-4 page">
             <h5 class="path-text">/</h5>
-            <select class="page" @onchange="changingTheme" style="float: right;">
+            <select class="page theme-picker" @onchange="changingTheme" style="float: right;">
                 @foreach(var theme in themes){
                     <option selected="@isSelectedTheme(theme)" value="@theme">@theme</option>
                 }

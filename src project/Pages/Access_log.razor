@@ -1,30 +1,45 @@
 ﻿@page "/Access_log"
 @using MongoDB_Web.Data.Helpers
 @using MongoDB_Web.Objects;
+@using Data.OTP;
 @inject LogManager logManager;
-
-<h1>Activity Protocol</h1>
+@inject AuthManager authManager;
+@inject NavigationManager navigationManager;
+<h3>Activity Protocol</h3>
 <br />
 
-<div class="row">
-    <button @onclick="() => changeLogType(LogType.All)" class="infoBox col-2 page ">All @countOfAll</button>
-    <button @onclick="() => changeLogType(LogType.Error)" class="infoBox col-2 page">Error @countOfError</button>
-    <button @onclick="() => changeLogType(LogType.Warning)" class="infoBox col-2 page">Warning @countOfWarning</button>
-    <button @onclick="() => changeLogType(LogType.Info)" class="infoBox col-2 page">Information @countOfInfo</button>
-    <select @onchange="changeDate" class="col-3 page infoBox">
+<ul class="navbar nav ml-auto search-box">
+    <li>
+    <button @onclick="() => changeLogType(LogType.All)" class="form-control page form-control-sm btn btn-primary">All @countOfAll</button>
+    </li>
+    <li>
+    <button @onclick="() => changeLogType(LogType.Error)" class="form-control page form-control-sm btn btn-primary">Error @countOfError</button>
+    </li>
+    <li>
+    <button @onclick="() => changeLogType(LogType.Warning)" class="form-control page form-control-sm btn btn-primary">Warning @countOfWarning</button>
+    </li>
+    <li>
+    <button @onclick="() => changeLogType(LogType.Info)" class="form-control page form-control-sm btn btn-primary">Information @countOfInfo</button>
+    </li>
+    <li>
+    <select @onchange="changeDate" class="form-control-sm page">
         @{
-            if(availableLogDates != null)
+            if (availableLogDates != null)
                 foreach (DateTime date in availableLogDates)
-            {
-                bool newlog = date.Date.Year == DateTime.Now.Year && date.Date.Month == DateTime.Now.Month;
-                <option value="@date" selected="@newlog.ToString()" class="page">@date.Year/@date.Month</option>
-            }
-    }
-</select>
-<br />
-    <br />
-    <input type="text" @bind="searchTerm" placeholder="Search in messages" class="col-2 page mt-1" />
-    <button @onclick="refresh" class="col-1 page page mt-1">Search</button>
+                {
+                    bool newlog = date.Date.Year == DateTime.Now.Year && date.Date.Month == DateTime.Now.Month;
+                    <option value="@date" selected="@newlog.ToString()">@date.Year/@date.Month</option>
+                }
+        }
+    </select>
+    </li>
+    <li class="ms-auto">
+        <input type="text" @bind="searchTerm" placeholder="Search in messages" class="form-control page" />
+</li>
+    <li class="ms-2 last-item-padding">
+        <button @onclick="refresh" class="form-control form-control-sm page">Search</button>
+</li>
+</ul>
 <br />
     <table class="table page sortable">
         <thead>
@@ -39,14 +54,19 @@
             @foreach (var log in logsToDisplay)
             {
                 <tr>
-                    <td>@log.Created</td>
+                    <td class="date-td">@log.Created</td>
                     <td>@log.Type</td>
-                    <td>@log.Message</td>
+                    <td>
+                        <div class="message-container">
+                            <div class="message-content @(expandedMessages.Contains(log.Id) ? "expand" : "truncate")" @onclick="() => ToggleMessage(log.Id)">
+                                <span>@log.Message</span>
+                            </div>
+                        </div>
+                    </td>
                 </tr>
             }
         </tbody>
     </table>
-</div>
 
 @code{
     int countOfInfo;
@@ -63,6 +83,15 @@
 
     string currentSortField = "Date";
     bool sortAscending = true;
+    HashSet<string> expandedMessages = new HashSet<string>();
+
+    protected override Task OnInitializedAsync()
+    {
+        if (!authManager.IsAdmin())
+            navigationManager.NavigateTo("/Dashboard");
+
+        return base.OnInitializedAsync();
+    }
 
     void SortTable(string field)
     {
@@ -78,6 +107,17 @@
         refresh();
     }
 
+    void ToggleMessage(string guid)
+    {
+        if (expandedMessages.Contains(guid))
+        {
+            expandedMessages.Remove(guid);
+        }
+        else
+        {
+            expandedMessages.Add(guid);
+        }
+    }
 
     public enum LogType
     {
@@ -146,5 +186,4 @@
         }
         return logs;
     }
-
 }

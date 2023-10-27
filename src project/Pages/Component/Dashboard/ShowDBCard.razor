@@ -8,7 +8,7 @@
 <DeleteDBModal @ref="deleteDBModal" dbName="@name"/>
 <MongoDB_Web.Pages.Component.Util.DownloadModal @ref="downloadModal" dbName="@name" type="database" />
 <MongoDB_Web.Pages.Component.Util.MoveDataModal @ref="moveModal" dbName="@name" type="database" />
-<DetailDBModal @ref="detailDBModal" dbName="@name"/>
+<DetailDBModal @ref="detailDBModal" dbName="@name" stats="@Stats" />
 <div class="col-lg-4 col-xl-3 col-md-5 mb-8 col-sm-12 py-3">
     <div class="shadow card h-100 rounded cardbox">
         <div class="card-header py-1 @(name == "admin" || name == "config" || name == "local" ? "danger-background" : "")">
@@ -18,17 +18,17 @@
             <button type="button" @onclick="() => deleteDBModal?.Open()" class=" btn-close deleteicon blacktowhitetheme" aria-label="Close"></button>
             </div>
         <div class="card-body">
-            <p class="card-text">Size on disk: @sizeOnDisk KB <br /> 
-                @if (CollectionAmount != -1)
-                {
-                    <text>Collections: @CollectionAmount</text>
-                }
-                </p>
-                    <br />
-                </div>
+            <p class="card-text">
+                Size on disk: @sizeOnDisk KB <br />
+                Collections: @collections <br />
+                Objects: @objects <br />
+                Indexes: @indexes
+            </p>
+        </div>
+
         <div class="card-footer d-flex justify-content-between align-items-center">
             <div class="btn-group">
-                <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                <button type="button" class="btn btn-success actionbutton dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                     Option
                 </button>
                 <ul class="dropdown-menu element-background">
@@ -42,19 +42,22 @@
                     }
                 </ul>
             </div>
-            <a href="CollectionManager/@name" class="btn btn-primary">Open</a>
+            <a href="CollectionManager/@name" class="btn actionbutton btn-primary">Open</a>
             </div>
     </div>
     </div>
 @code {
     [Parameter]
     public MongoDB.Bson.BsonDocument DBObject { get; set; } = default!;
+
     [Parameter]
-    public int CollectionAmount { get; set; }
+    public MongoDB.Bson.BsonDocument? Stats { get; set; }
 
     string? name { get; set; } = "";
     long? sizeOnDisk { get; set; } = 0;
-    bool? empty { get; set; } = false;
+    int? collections { get; set; }
+    int? objects { get; set; }
+    long? indexes { get; set; }
 
     protected override Task OnParametersSetAsync()
     {
@@ -67,6 +70,7 @@
         try
         {
             DBObject = DBObject ?? new MongoDB.Bson.BsonDocument();
+            Stats = Stats ?? new MongoDB.Bson.BsonDocument();
 
             if (!string.IsNullOrEmpty(DBObject.GetValue("name").ToString()))
                 name = DBObject.GetValue("name").AsString;
@@ -74,12 +78,17 @@
             if (!string.IsNullOrEmpty(DBObject.GetValue("sizeOnDisk").ToString()))
                 sizeOnDisk = (long)Math.Round(DBObject.GetValue("sizeOnDisk").AsDouble / 1000, MidpointRounding.AwayFromZero);
 
-            if (!string.IsNullOrEmpty(DBObject.GetValue("empty").ToString()))
-                empty = DBObject.GetValue("empty").AsBoolean;
+            if (Stats != null)
+            {
+                collections = Stats.GetValue("collections").AsInt32;
+                objects = Stats.GetValue("objects").AsInt32;
+                indexes = Stats.GetValue("indexes").AsInt32;
+            }
+
         }
         catch (Exception ex)
         {
-            LogManager logManager = new(LogManager.LogType.Error, "Failed loading DB details", ex);
+            LogManager logManager = new(LogManager.LogType.Error, "Failed loading DB and Stats details", ex);
         }
     }
-    }
+}

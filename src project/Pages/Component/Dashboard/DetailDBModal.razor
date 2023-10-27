@@ -10,7 +10,7 @@
                 <button type="button" class="btn-close blacktowhitetheme" data-dismiss="modal" @onclick="() => Close()" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                @if (stats != null)
+                @if (Stats != null)
                 {
                     <table class="table page">
                         <thead>
@@ -20,7 +20,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var element in stats)
+                            @foreach (var element in Stats)
                             {
                                 <tr>
                                     <td>@element.Name</td>
@@ -53,7 +53,9 @@
     [Parameter]
     public string dbName { get; set; } = "";
     @inject DBController dBController
-    BsonDocument? stats;
+
+    [Parameter]
+    public MongoDB.Bson.BsonDocument? Stats { get; set; }
 
     Guid Guid = Guid.NewGuid();
     string ModalDisplay = "none;";
@@ -63,7 +65,6 @@
     public async void Open()
     {
         ModalDisplay = "block;";
-        stats = dbController.GetDatabaseStatistics(dbName);
         await Task.Delay(100);
         ModalClass = "Show";
         ShowBackdrop = true;
