@@ -30,6 +30,12 @@
                     <img src="../icons/pie_chart.svg" class="svgicon blacktowhite" />  Statistic
                 </NavLink>
             </div>
+            if (authManager.IsAdmin()){
+            <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="User_session_control">
+                    <img src="../icons/user_control.svg" class="svgicon blacktowhite" />  User session control
+                </NavLink>
+            </div>
             
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="Access_log">
@@ -42,6 +48,7 @@
                     <img src="../icons/settings.svg" class="svgicon blacktowhite" />  Settings
                 </NavLink>
             </div>
+            }
         }
         @if (useAuthorization && authenticated)
         {
@@ -79,6 +86,9 @@
     
     [Inject]
     IHttpContextAccessor? HttpContextAccessor { get; set; }
+    @inject OTPFileManagement otpFileManagement;
+    @inject AuthManager authManager;
+
     bool useAuthorization { get; set; } = true;
     bool authenticated { get; set; } = false;
     bool useLogPage { get; set; } = false;
@@ -94,14 +104,9 @@
             authenticated = true;
             return;
         }
-        if (HttpContextAccessor is null || HttpContextAccessor.HttpContext is null)
-        {
-            authenticated = false;
-            return;
-        }
 
-        OTPAuthCookieManagement AuthManager = new(HttpContextAccessor.HttpContext);
-        if (AuthManager.IsCookieValid())
+
+        if (authManager.IsCookieValid())
         {
             authenticated = true;
             return;

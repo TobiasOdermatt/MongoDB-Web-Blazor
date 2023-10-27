@@ -8,6 +8,7 @@
     --secound-color: #181e20;
     --third-color: #25292c;
     --fifth-color: #212529;
+    --navbar-color: #0f1e1f;
     --colornumber: 1;
     --danger-background: #2b2020;
 }
@@ -19,6 +20,7 @@
     --secound-color: floralwhite;
     --third-color: #e5e5e5;
     --fifth-color: #f3f3f3;
+    --navbar-color: #eff5f1;
     --colornumber: 0;
     --danger-background: #f1d0d0;
 }
@@ -32,10 +34,12 @@
 }
 
 .navbutton {
-    font-size: 0.8rem;
-    margin-right: 1rem
+    margin-right: 1.2rem
 }
 
+.actionbutton{
+    font-size: 0.95rem;
+}
 .blacktowhitetheme {
     filter: brightness(0) invert(var(--colornumber));
 }
@@ -56,6 +60,9 @@
     background-color: #00000080;
 }
 
+.resultText {
+    font-size: 1.2rem;
+}
 .modal-dialog {
     margin-top: 4rem;
 }
@@ -119,8 +126,8 @@ a, .btn-link {
 
 .btn-primary {
     color: #fff;
-    background-color: #10334e;
-    border-color: #1861ac;
+    background-color: #223b4f;
+    border-color: #152f4b;
 }
 
 .content {
@@ -192,12 +199,12 @@ a, .btn-link {
     background-color: var(--third-color);
 }
 
-.btn-primary {
-    color: white;
+.card-body {
+    font-size: 0.95rem;
 }
 
-.infoBox {
-    border-color: var(--third-color);
+.btn-primary {
+    color: white;
 }
 
 .active {
@@ -238,4 +245,19 @@ a, .btn-link {
     background-color: var(--fifth-color);
     color: var(--font-color);
     user-select: none;
+}
+
+.select-area {
+    margin-left: 3px;
+    border-radius: 3px;
+    max-width: 100px;
+}
+
+.theme-picker {
+    font-size: 1.2rem;
+}
+
+li{
+    margin-top: 10px;
+    margin-left: 10px;
 }
