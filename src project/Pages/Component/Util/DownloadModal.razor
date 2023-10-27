@@ -12,6 +12,7 @@
 @code {
     [Inject]
     IHttpContextAccessor? HttpContextAccessor { get; set; }
+    @inject AuthManager authManager;
 
     [Parameter]
     public string? dbName{ get; set; }
@@ -33,6 +34,7 @@
     public string? type{ get; set; }
 
     @inject DBController dBController
+    @inject OTPFileManagement otpFileManagement;
     Guid guid = Guid.NewGuid();
     string ModalDisplay = "none;";
     string ModalClass = "";
@@ -40,16 +42,14 @@
 
      async Task proccessDownload()
     {
-        if (dbName is null || dBController is null) return;
-
-        if (HttpContextAccessor?.HttpContext == null) return;
+        if (dbName is null || dBController is null) 
+            return;
 
         userStoragePath = $"{Directory.GetCurrentDirectory()}" + @"\UserStorage\";
         guid = Guid.NewGuid();
         string lastFourChars = guid.ToString().Substring(guid.ToString().Length - 4);
 
-        OTPAuthCookieManagement AuthManager = new(HttpContextAccessor.HttpContext);
-        string? userUUID = AuthManager.GetUUID();
+        string? userUUID = authManager.GetUUID();
 
         userStoragePath = Path.Combine(userStoragePath, userUUID + "/downloads");
 

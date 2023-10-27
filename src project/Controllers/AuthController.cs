@@ -11,6 +11,13 @@ namespace MongoDB_Web.Controllers
     [ApiController]
     public class AuthController : Controller
     {
+        private readonly OTPFileManagement _otpFileManagement;
+
+        public AuthController(OTPFileManagement otpFileManagement)
+        {
+            _otpFileManagement = otpFileManagement;
+        }
+
         Object generateUUIDObject(string uuid)
         {
             return new { uuid };
@@ -43,11 +50,9 @@ namespace MongoDB_Web.Controllers
                 var uuidObject = generateUUIDObject(uuid);
 
                 DateTime localDate = DateTime.Now;
-                OTPFileObject newFile = new(localDate, dataJSON.RandData);
-                OTPFileManagement fileManager = new();
+                OTPFileObject newFile = new(Guid.Parse(uuid), localDate, dataJSON.RandData, ipOfRequest, false, username);
 
-                fileManager.WriteOTPFile(uuid, newFile);
-                fileManager.CleanUpOTPFiles();
+                _otpFileManagement.WriteOTPFile(uuid, newFile);
 
                 LogManager _ = new(LogType.Info, "OTP file created for user: " + username + " with UUID " + uuid + " IP: " + ipOfRequest);
 
@@ -64,8 +69,7 @@ namespace MongoDB_Web.Controllers
             if (uuid is null)
                 return Redirect("/Connect");
 
-            OTPFileManagement fileManger = new();
-            fileManger.DeleteOTPFile(uuid);
+            _otpFileManagement.DeleteOTPFile(uuid);
 
             HttpContext.Response.Cookies.Delete("UUID");
             HttpContext.Response.Cookies.Delete("Token");

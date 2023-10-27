@@ -1,0 +1,55 @@
+﻿.search-box {
+    background-color: var(--navbar-color) !important;
+    padding-left: 15px;
+}
+
+.navbar {
+    justify-content: left;
+    border-radius: 5px;
+    padding-bottom: 15px;
+}
+
+button {
+    padding-top: unset;
+    padding-bottom: unset;
+    margin-right: 1rem;
+    border-color: var(--secound-text-color);
+}
+
+.btn {
+    font-size: unset !important;
+}
+
+.form-control-sm {
+    font-size: unset !important;
+}
+
+.last-item-padding {
+    padding-right: max(15px, 5%);
+}
+
+th, td {
+    text-align: left;
+    padding: 8px;
+}
+
+.date-td{
+    min-width: 165px;
+}
+
+.message-container {
+    display: flex;
+}
+
+.message-content {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 460px;
+    overflow: hidden;
+}
+
+.expand {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+}

@@ -347,6 +347,9 @@ namespace MongoDB_Web.Controllers
 
         public List<BsonDocument> GetCollection(string dbName, string collectionName, int skip, int limit, string selectedKey, string searchValue)
         {
+            if (Client is null)
+                return new List<BsonDocument>();
+
             var filter = Builders<BsonDocument>.Filter.Empty;
 
             var database = Client.GetDatabase(dbName);

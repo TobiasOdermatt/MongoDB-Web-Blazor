@@ -96,6 +96,9 @@
 @code {
     [Inject]
     IHttpContextAccessor? HttpContextAccessor { get; set; }
+    @inject OTPFileManagement otpFileManagement;
+    @inject AuthManager authManager;
+
     Guid guid = Guid.NewGuid();
     string modalDisplay = "none;";
     string modalClass = "";
@@ -126,9 +129,7 @@
 
     protected override void OnInitialized()
     {
-        if (HttpContextAccessor?.HttpContext == null) return;
-        OTPAuthCookieManagement AuthManager = new(HttpContextAccessor.HttpContext);
-        userUUID = AuthManager.GetUUID();
+        userUUID = authManager.GetUUID();
     }
 
     void adoptOidChange(ChangeEventArgs e)

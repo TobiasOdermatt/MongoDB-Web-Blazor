@@ -51,11 +51,12 @@
     </li>
 
 </ul>
-<input type="checkbox" class="checkbox-area" id="checkbox-hide-id" checked="@hideObjectId" @onchange="hideId" />
-<label for="checkbox-hide-id">Hide ObjectId</label>
+<br />
 <p class="second-text-color resultText">
     @totalCount documents found.
 </p>
+<input type="checkbox" class="checkbox-area" id="checkbox-hide-id" checked="@hideObjectId" @onchange="hideId" />
+<label for="checkbox-hide-id">Hide ObjectId</label>
 
 
 <div class="row bottom-div" style="display: @(pageExist ? "block" : "none");">
