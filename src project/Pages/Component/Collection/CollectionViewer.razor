@@ -81,6 +81,8 @@
 </div>
 <br />
 <br />
+@if (totalPages > 1)
+{
 <nav aria-label="...">
     <ul class="pagination">
         <li class="page-item space @(IsPreviousButtonDisabled ? "disabled" : "")">
@@ -111,6 +113,7 @@
         </li>
     </ul>
 </nav>
+}
 <br />
 <p class="second-text-color resultText">Total @totalPages Pages</p>
 
@@ -169,6 +172,7 @@
         totalPages = (int)Math.Ceiling((double)totalCount / itemsPerPage);
         return documentsList;
     }
+
     void initParameter()
     {
         if (dbName == null || collectionName == null)
