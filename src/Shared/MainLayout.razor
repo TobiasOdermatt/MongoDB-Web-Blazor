@@ -1,0 +1,55 @@
+﻿@inherits LayoutComponentBase
+@inject IJSRuntime js
+@using Data.Helpers
+@inject AppData appData
+
+<PageTitle>MongoDB Web</PageTitle>
+
+<div class="page @getCssClass()">
+    <div class="sidebar">
+        <NavManager />
+    </div>
+    <main>
+        <div class="top-row px-4 page">
+            <h5 class="path-text">/</h5>
+            <select class="page theme-picker" @onchange="changingTheme" style="float: right;">
+                @foreach(var theme in themes){
+                    <option selected="@isSelectedTheme(theme)" value="@theme">@theme</option>
+                }
+                </select>
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code{
+    string selectedTheme = "Light";
+    List<string> themes = new List<string> { "Light", "Dark" };
+    readonly string keyTheme = "theme";
+
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrEmpty(appData.Theme))
+            selectedTheme = appData.Theme;
+    }
+
+    string getCssClass()
+    {
+        return selectedTheme == "Dark" ? String.Empty : "light-mode";
+    }
+
+    bool isSelectedTheme(string theme)
+    {
+        return theme == selectedTheme;
+    }
+
+    async Task changingTheme(ChangeEventArgs e)
+    {
+        selectedTheme = e.Value?.ToString() ?? string.Empty;
+        if (!string.IsNullOrEmpty(selectedTheme))
+            await js.InvokeVoidAsync("setCookie", keyTheme, selectedTheme,360);
+    }
+}

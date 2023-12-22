@@ -14,7 +14,7 @@ OnlineMongoDBManagement is a web-based application that allows users to manage t
 - Built-in login (OTP) (optional)
 - Activity logs (optional)
 
- All the preferences wich services you wanna include is in the config.properties
+ All the preferences which services you wanna include is in the config.properties
 
  Certainly, here's the content you can put in your GitHub documentation in Markdown format:
 

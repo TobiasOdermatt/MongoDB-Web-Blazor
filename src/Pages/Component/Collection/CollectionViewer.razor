@@ -1,0 +1,260 @@
+﻿@page "/CollectionViewer/{dbName}/{collectionname}/{itemsPerPage:int}/{currentPage:int}"
+@page "/CollectionViewer/{dbName}/{collectionname}"
+@page "/CollectionViewer/{dbName}/{collectionname}/{itemsPerPage:int}/{currentPage:int}/{SelectedKey}/{SearchValue}"
+@page "/CollectionViewer/{dbName}/{collectionname}/{SelectedKey}/{SearchValue}"
+
+@using Controllers
+@using MongoDB.Bson
+@using System.Web
+@using MongoDB_Web.Pages.Component.Collection.Documents;
+@inject DBController DBController
+
+@code{
+    InsertDocumentModal? insertDocumentModal { get; set; }
+    SettingsCollectionModal? settingsCollectionModal { get; set; }
+}
+<InsertDocumentModal @ref="insertDocumentModal" dbName="@dbName" collectionName="@collectionName" />
+<SettingsCollectionModal @ref="settingsCollectionModal" dbName="@dbName" collectionName="@collectionName" attributeKeyList="@attributeKeyList" />
+
+<h2>View Collection: @collectionName</h2>
+<ul class="navbar nav ml-auto search-box">
+    <li>
+        <select class="form-control-sm page" @bind="SelectedKey" style="display: @(@attributeKeyList.Count != 0 ? "block" : "none");">
+            <option value="">All keys</option>
+            @foreach (var attributeKey in attributeKeyList)
+            {
+                <option value="@attributeKey">@attributeKey</option>
+            }
+        </select>
+    </li>
+
+    <li>
+        <input class="form-control form-control-sm page" @bind="SearchValue" type="text" placeholder="value...." aria-label="Search...">
+    </li>
+
+    <li>
+        <button type="submit" class="form-control page form-control-sm btn btn-default" @onclick="Search">
+            Search
+        </button>
+    </li>
+    
+    <li class="ms-auto right-nav-side">
+        <button type="submit" class="form-control page form-control-sm btn btn-primary" @onclick="() => settingsCollectionModal?.Open()" @onclick:preventDefault>
+            <img src="../icons/settings.svg" class="svgicon whitetoblacktheme"> Adjust collection
+        </button>
+    </li>
+
+    <li class="ms-2 right-nav-side">
+        <button type="submit" class="form-control page form-control-sm btn btn-primary" @onclick="() => insertDocumentModal?.Open()" @onclick:preventDefault>
+            <img src="../icons/insert.svg" class="svgicon whitetoblacktheme"> Insert collection
+        </button>
+    </li>
+
+</ul>
+<br />
+<p class="second-text-color resultText">
+    @totalCount documents found.
+</p>
+<input type="checkbox" class="checkbox-area" id="checkbox-hide-id" checked="@hideObjectId" @onchange="hideId" />
+<label for="checkbox-hide-id">Hide ObjectId</label>
+
+
+<div class="row bottom-div" style="display: @(pageExist ? "block" : "none");">
+
+    @if (documentsList == null)
+    {
+        <p class="text-danger">No collection on this page</p>
+    }
+    else
+    {
+        @foreach (var document in displayedDocuments)
+        {
+            var documentToDisplay = document.ToString();
+            var objectId = document.GetValue("_id").ToString();
+            if (hideObjectId)
+                documentToDisplay = document.ToString().Replace($"\"_id\" : ObjectId(\"{objectId}\"),", "");
+
+            <ViewDocument Document="@documentToDisplay" ObjectId="@objectId" dbName="@dbName" collectionName="@collectionName" />
+        }
+
+    }
+</div>
+<br />
+<br />
+@if (totalPages > 1)
+{
+<nav aria-label="...">
+    <ul class="pagination">
+        <li class="page-item space @(IsPreviousButtonDisabled ? "disabled" : "")">
+            <a class="page-link" @onclick="PreviousPage" tabindex="-1">Previous</a>
+        </li>
+        @if (currentPage <= 3)
+        {
+            for (var i = 1; i <= Math.Min(totalPages, 5); i++)
+            {
+                var iLocal = i;
+                <li class="page-item @(i == currentPage ? "active" : "")">
+                    <a class="page-link" @onclick="()=> GoToPage(iLocal)">@iLocal</a>
+                </li>
+            }
+        }
+        else
+        {
+            for (var i = Math.Max(1, currentPage - 2); i <= Math.Min(totalPages, currentPage + 2); i++)
+            {
+                var iLocal = i;
+                <li class="page-item space @(i == currentPage ? "active" : "")">
+                    <a class="page-link" @onclick="()=> GoToPage(iLocal)">@iLocal</a>
+                </li>
+            }
+        }
+        <li class="page-item space @(IsNextButtonDisabled ? "disabled" : "")">
+            <a class="page-link" @onclick="NextPage">Next</a>
+        </li>
+    </ul>
+</nav>
+}
+<br />
+<p class="second-text-color resultText">Total @totalPages Pages</p>
+
+
+
+@code {
+    [Inject]
+    IJSRuntime? jsRuntime { get; set; }
+
+    [Parameter]
+    public string? dbName { get; set; } = "";
+    [Parameter]
+    public string? collectionName { get; set; } = "";
+    [Parameter]
+    public int itemsPerPage { get; set; } = 10;
+    [Parameter]
+    public int currentPage { get; set; } = 1;
+    [Parameter]
+    public string SelectedKey { get; set; } = "";
+    [Parameter]
+    public string SearchValue { get; set; } = "";
+
+
+    List<BsonDocument>? documentsList;
+    List<string> attributeKeyList = new List<string>();
+    List<BsonDocument> displayedDocuments = new List<BsonDocument>();
+    int totalPages = 1;
+    long totalCount;
+    bool pageExist = true;
+    bool hideObjectId = true;
+
+    private bool IsPreviousButtonDisabled => currentPage == 1;
+    private bool IsNextButtonDisabled => currentPage >= totalPages;
+
+
+    protected override void OnInitialized()
+    {
+        @inject NavigationManager NavigationManager;
+        var uri = new Uri(NavigationManager.Uri);
+        SelectedKey = HttpUtility.ParseQueryString(uri.Query).Get("key") ?? "";
+        SearchValue = HttpUtility.ParseQueryString(uri.Query).Get("search") ?? "";
+        itemsPerPage = int.Parse(HttpUtility.ParseQueryString(uri.Query).Get("itemsPerPage") ?? "10");
+        currentPage = int.Parse(HttpUtility.ParseQueryString(uri.Query).Get("currentPage") ?? "1");
+    }
+
+    List<BsonDocument>? listDocuments(string selectedKey, string searchValue)
+    {
+        var skip = (currentPage - 1) * itemsPerPage;
+        skip = skip == -10 ? 0 : skip;
+        var limit = itemsPerPage;
+        if (dbName is null || collectionName is null)
+            return null;
+
+        var documentsList = DBController.GetCollection(dbName, collectionName, skip, limit, selectedKey, searchValue);
+        totalCount = DBController.GetTotalCount(dbName, collectionName, selectedKey, searchValue);
+        totalPages = (int)Math.Ceiling((double)totalCount / itemsPerPage);
+        return documentsList;
+    }
+
+    void initParameter()
+    {
+        if (dbName == null || collectionName == null)
+            return;
+
+        if (itemsPerPage == 0 && currentPage == 0)
+            itemsPerPage = 10;
+        totalCount = DBController.GetCollectionCount(dbName, collectionName, SelectedKey, SearchValue);
+        totalPages = (int)Math.Ceiling((double)totalCount / itemsPerPage);
+    }
+
+    protected override void OnParametersSet()
+    {
+        initParameter();
+
+        documentsList = listDocuments(SelectedKey, SearchValue);
+
+        UpdateDisplayedCollection();
+
+        attributeKeyList = DBController.GetCollectionAttributes(dbName, collectionName);
+
+        StateHasChanged();
+    }
+
+    private void UpdateDisplayedCollection()
+    {
+        if (documentsList == null) { return; }
+        displayedDocuments = new List<BsonDocument>(documentsList);
+    }
+
+    private void Search()
+    {
+        documentsList = listDocuments(SelectedKey, SearchValue);
+        currentPage = 1;
+        UpdateDisplayedCollection();
+        ChangeUrl();
+        StateHasChanged();
+    }
+
+    private void PreviousPage()
+    {
+        if (currentPage > 1)
+        {
+            currentPage--;
+            documentsList = listDocuments(SelectedKey, SearchValue);
+            UpdateDisplayedCollection();
+            ChangeUrl();
+            StateHasChanged();
+        }
+    }
+
+    private void NextPage()
+    {
+        if (currentPage < totalPages)
+        {
+            currentPage++;
+            documentsList = listDocuments(SelectedKey, SearchValue);
+            UpdateDisplayedCollection();
+            ChangeUrl();
+            StateHasChanged();
+        }
+    }
+
+    private void ChangeUrl()
+    {
+        string newUrl = $"/CollectionViewer/{dbName}/{collectionName}?itemsPerPage={itemsPerPage}&currentPage={currentPage}&key={SelectedKey}&search={SearchValue}";
+        jsRuntime?.InvokeVoidAsync("changeUrl", newUrl);
+    }
+
+    private void GoToPage(int page)
+    {
+        currentPage = page;
+        documentsList = listDocuments(SelectedKey, SearchValue);
+        UpdateDisplayedCollection();
+        ChangeUrl();
+        StateHasChanged();
+    }
+
+    void hideId()
+    {
+        hideObjectId = !hideObjectId;
+        StateHasChanged();
+    }
+
+}

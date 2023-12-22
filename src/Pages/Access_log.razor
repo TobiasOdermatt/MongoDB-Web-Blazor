@@ -1,0 +1,189 @@
+﻿@page "/Access_log"
+@using MongoDB_Web.Data.Helpers
+@using MongoDB_Web.Objects;
+@using Data.OTP;
+@inject LogManager logManager;
+@inject AuthManager authManager;
+@inject NavigationManager navigationManager;
+<h3>Activity Protocol</h3>
+<br />
+
+<ul class="navbar nav ml-auto search-box">
+    <li>
+    <button @onclick="() => changeLogType(LogType.All)" class="form-control page form-control-sm btn btn-primary">All @countOfAll</button>
+    </li>
+    <li>
+    <button @onclick="() => changeLogType(LogType.Error)" class="form-control page form-control-sm btn btn-primary">Error @countOfError</button>
+    </li>
+    <li>
+    <button @onclick="() => changeLogType(LogType.Warning)" class="form-control page form-control-sm btn btn-primary">Warning @countOfWarning</button>
+    </li>
+    <li>
+    <button @onclick="() => changeLogType(LogType.Info)" class="form-control page form-control-sm btn btn-primary">Information @countOfInfo</button>
+    </li>
+    <li>
+    <select @onchange="changeDate" class="form-control-sm page">
+        @{
+            if (availableLogDates != null)
+                foreach (DateTime date in availableLogDates)
+                {
+                    bool newlog = date.Date.Year == DateTime.Now.Year && date.Date.Month == DateTime.Now.Month;
+                    <option value="@date" selected="@newlog.ToString()">@date.Year/@date.Month</option>
+                }
+        }
+    </select>
+    </li>
+    <li class="ms-auto">
+        <input type="text" @bind="searchTerm" placeholder="Search in messages" class="form-control page" />
+</li>
+    <li class="ms-2 last-item-padding">
+        <button @onclick="refresh" class="form-control form-control-sm page">Search</button>
+</li>
+</ul>
+<br />
+    <table class="table page sortable">
+        <thead>
+            <tr>
+                <th scope="col" @onclick=@(() => SortTable("Date"))>Date</th>
+                <th scope="col" @onclick=@(() => SortTable("Type"))>Type</th>
+                <th scope="col" @onclick=@(() => SortTable("Message"))>Message</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var log in logsToDisplay)
+            {
+                <tr>
+                    <td class="date-td">@log.Created</td>
+                    <td>@log.Type</td>
+                    <td>
+                        <div class="message-container">
+                            <div class="message-content @(expandedMessages.Contains(log.Id) ? "expand" : "truncate")" @onclick="() => ToggleMessage(log.Id)">
+                                <span>@log.Message</span>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+@code{
+    int countOfInfo;
+    int countOfWarning;
+    int countOfError;
+    int countOfAll;
+
+    DateTime currentDate { get; set; }
+    string searchTerm = "";
+
+    List<DateTime>? availableLogDates { get; set; }
+    List<LogObject> logsToDisplay { get; set; }
+    LogType currentType { get; set; } = LogType.All;
+
+    string currentSortField = "Date";
+    bool sortAscending = true;
+    HashSet<string> expandedMessages = new HashSet<string>();
+
+    protected override Task OnInitializedAsync()
+    {
+        if (!authManager.IsAdmin())
+            navigationManager.NavigateTo("/Dashboard");
+
+        return base.OnInitializedAsync();
+    }
+
+    void SortTable(string field)
+    {
+        if (currentSortField == field)
+        {
+            sortAscending = !sortAscending;
+        }
+        else
+        {
+            currentSortField = field;
+            sortAscending = true;
+        }
+        refresh();
+    }
+
+    void ToggleMessage(string guid)
+    {
+        if (expandedMessages.Contains(guid))
+        {
+            expandedMessages.Remove(guid);
+        }
+        else
+        {
+            expandedMessages.Add(guid);
+        }
+    }
+
+    public enum LogType
+    {
+        All,
+        Info,
+        Warning,
+        Error
+    }
+
+    void changeLogType(LogType SelectedType)
+    {
+        currentType = SelectedType;
+        refresh();
+    }
+
+    void changeDate(ChangeEventArgs e)
+    {
+        if (e.Value != null)
+        {
+            string dateString = e.Value?.ToString() ?? string.Empty;
+            if (!string.IsNullOrEmpty(dateString))
+            {
+                currentDate = DateTime.Parse(dateString);
+                refresh();
+            }
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        availableLogDates = logManager.GetAvailableLogDates();
+        if (currentDate == DateTime.MinValue)
+        {
+            currentDate = DateTime.Now;
+        }
+        refresh();
+    }
+
+    void refresh()
+    {
+        (countOfInfo, countOfWarning, countOfError) = logManager.CountLog(currentDate);
+        countOfAll = countOfError + countOfInfo + countOfWarning;
+
+        logsToDisplay = getLogObject();
+        StateHasChanged();
+    }
+
+    List<LogObject> getLogObject()
+    {
+        var logs = logManager.ReadLogFiles(currentType.ToString(), currentDate)
+                  .Where(log => log.Message.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                  .ToList();
+
+        if (currentSortField == "Date")
+        {
+            logs = sortAscending ? logs.OrderBy(log => log.Created).ToList() : logs.OrderByDescending(log => log.Created).ToList();
+        }
+        else if (currentSortField == "Type")
+        {
+            logs = sortAscending ? logs.OrderBy(log => log.Type.ToString()).ToList() : logs.OrderByDescending(log => log.Type).ToList();
+        }
+        else if (currentSortField == "Message")
+        {
+            logs = sortAscending ? logs.OrderBy(log => log.Message).ToList() : logs.OrderByDescending(log => log.Message).ToList();
+        }
+        return logs;
+    }
+}

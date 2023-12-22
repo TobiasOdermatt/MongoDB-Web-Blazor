@@ -1,0 +1,139 @@
+﻿<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">MongoDB Web</a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="toggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@navMenuCssClass" @onclick="toggleNavMenu">
+    <nav class="flex-column">
+        @if (authenticated || (useAuthorization == false))
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="Dashboard">
+                    <span class="oi oi-home" aria-hidden="true"></span> Dashboard
+                </NavLink>
+            </div>
+            
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="Query">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" aria-hidden="true" height="22" fill="currentColor" class="bi bi-lightning-fill svgicon" viewBox="0 0 16 16">
+                        <path d="M5.52.359A.5.5 0 0 1 6 0h4a.5.5 0 0 1 .474.658L8.694 6H12.5a.5.5 0 0 1 .395.807l-7 9a.5.5 0 0 1-.873-.454L6.823 9.5H3.5a.5.5 0 0 1-.48-.641l2.5-8.5z"></path>
+                    </svg>  Query Terminal
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="Statistic">
+                    <img src="../icons/pie_chart.svg" class="svgicon blacktowhite" />  Statistic
+                </NavLink>
+            </div>
+            if (authManager.IsAdmin()){
+            <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="User_session_control">
+                    <img src="../icons/user_control.svg" class="svgicon blacktowhite" />  User session control
+                </NavLink>
+            </div>
+            
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="Access_log">
+                    <img src="../icons/security.svg" class="svgicon blacktowhite" />  Access Log
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="Settings">
+                    <img src="../icons/settings.svg" class="svgicon blacktowhite" />  Settings
+                </NavLink>
+            </div>
+            }
+        }
+        @if (useAuthorization && authenticated)
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="api/Auth/Logout">
+                    <span class="oi oi-account-logout" aria-hidden="true"></span> Logout
+                </NavLink>
+            </div>
+        }
+    </nav>
+</div>
+<style>
+    .blacktowhite{
+        filter: brightness(0) invert(1);
+    }
+    .svgicon{
+        text-align: center;
+        box-sizing: content-box;
+        margin-right: 0.5em;
+    }
+</style>
+@using Data.OTP
+@using static Data.Helpers.LogManager;
+@using MongoDB_Web.Data.Helpers
+
+@code {
+    bool collapseNavMenu = true;
+
+    string? navMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    void toggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+    
+    [Inject]
+    IHttpContextAccessor? HttpContextAccessor { get; set; }
+    @inject OTPFileManagement otpFileManagement;
+    @inject AuthManager authManager;
+
+    bool useAuthorization { get; set; } = true;
+    bool authenticated { get; set; } = false;
+    bool useLogPage { get; set; } = false;
+    @inject NavigationManager NavigationManager;
+    @inject ConfigManager ConfigManager;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        loadConfig();
+        if(useAuthorization is false)
+        {
+            authenticated = true;
+            return;
+        }
+
+
+        if (authManager.IsCookieValid())
+        {
+            authenticated = true;
+            return;
+        }
+
+        authenticated = false;
+        if (NavigationManager.Uri != NavigationManager.BaseUri + "Connect")
+            NavigationManager.NavigateTo("/Connect");
+    }
+
+    void loadConfig()
+    {
+        useAuthorization = readBoolFromConfig("useAuthorization") ?? true;
+        useLogPage = readBoolFromConfig("EnableLogPage") ?? false;
+    }
+
+    bool? readBoolFromConfig(string key)
+    {
+        string? value = ConfigManager.ReadKey(key);
+        if (Boolean.TryParse(value, out bool boolOutput))
+        {
+            return boolOutput;
+        }
+        else
+        {
+            LogManager _ = new(LogManager.LogType.Error, "ConfigManager: " + key + " is not a valid boolean");
+            return null;
+        }
+    }
+}

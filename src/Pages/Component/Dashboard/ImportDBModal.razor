@@ -1,0 +1,320 @@
+﻿@using MongoDB_Web.Data.Helpers;
+@using Controllers
+@using Data.OTP;
+@using Newtonsoft.Json.Linq;
+@using System.Text.Json;
+@inject IJSRuntime JSRuntime;
+@inject DBController DBController;
+@inject ImportManager ImportManager;
+<div class="modal @modalClass" tabindex="-1" role="dialog" style="display:@modalDisplay">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content modal-dialog">
+            <div class="modal-header">
+                <h5 class="modal-title py-2">Import database or collection</h5>
+                <button type="button" class="btn-close blacktowhitetheme" data-dismiss="modal" @onclick="() => Close()" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="upload-section" style="display:@uploadSectionDisplay">
+                <p>Ensure your file is in .json format before uploading</p>
+                    <div id="drop-area" class="file-upload mt-3">
+                        <input type="file" id="file-input" hidden>
+                    <p id="file-name">Drop your file here for uploading or simply click this section to start.</p>
+                    </div>
+                    <input type="submit" class="btn btn-primary btn-upload" value="Import" @onclick="validateFile">
+                    </div>
+                <div class="mb-3" style="display:@detailSectionDisplay">
+                    <label for="Input" class="form-label">Database name</label>
+                    <input type="text" class="form-control page" id="Input" @bind="@dbName" required>
+                </div>
+
+                <div class="mb-3" style="display:@progressSectionDisplay">
+                    <h5>@state</h5>
+                    <progress id="ProgressBar" data-guid="@guid" max="100" value="0" style="min-width: 350px;" class="d-none"></progress><br />
+                    <p id="status-text" data-guid="@guid"></p>
+                    <p id="text" data-guid="@guid">
+                        Please wait, dont leave this site
+                    </p>
+                </div>
+
+                <div class="mb-3" style="display:@detailSectionDisplay">
+                    <label class="form-label d-inline">
+                        <span class="mr-2">Total:</span>
+                        <span class="font-weight-bold">@collectionsNames.Count collections</span>
+                    </label>
+                    <label class="float-end">
+                        <span>Size:</span>
+                        <span class="font-weight-bold">@fileSize.ToString("F2") MB</span>
+                    </label>
+                    <br />
+                    @if (collectionsNames != null)
+                    {
+                        <ul class="list-group page">
+                            <li class="list-group-item page">
+                                <input type="checkbox" id="selectAll" @onchange="selectAllChanged" checked/>
+                                <label for="selectAll">@selectAllText</label>
+                            </li>
+                            @foreach (var collection in collectionsNames)
+                            {
+                                <li class="list-group-item page checkbox-area">
+                                    <input type="checkbox" id="@collection" value="@collection" checked="@checkedCollectionsNames.Contains(collection)" @onchange="e => checkboxChanged(e, collection)" />
+                                    <label for="@collection" class="editable-label">
+                                        <input class="editable-input page" type="text" value="@collection" @onchange="@((e) => updateChangedName(collection, e))" id="@collection" />
+                                    </label>
+                                </li>
+                            }
+                        </ul>
+                        <br />
+                        <label for="importSettings">Import settings:</label>
+                        <ul class="list-group page">
+                            <li class="list-group-item page">
+                                    <input type="checkbox" @onchange="@((e) => adoptOidChange(e))" id="adoptOldObjectId"/>
+                                    <label for="adoptOldObjectId">Adopt old object id</label>
+                            </li>
+                        </ul>
+
+                    }
+                    <input type="submit" class="btn btn-primary btn-upload float-start" value="Select another .json file" @onclick="chooseAnother">
+                    <input type="submit" class="btn btn-primary btn-upload" value="Import to MongoDB" @onclick="importDB">
+                </div>
+                <div class="mb-3 py-2">
+                    <br />
+                    <span class="@messageTyp mt-4" style="display:@messageDisplay">@message</span>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="() => Close()">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (showBackdrop)
+{
+    <div class="modal-backdrop fade @modalClass" style="display: @modalDisplay"></div>
+}
+
+@code {
+    [Inject]
+    IHttpContextAccessor? HttpContextAccessor { get; set; }
+    @inject OTPFileManagement otpFileManagement;
+    @inject AuthManager authManager;
+
+    Guid guid = Guid.NewGuid();
+    string modalDisplay = "none;";
+    string modalClass = "";
+    bool showBackdrop = false;
+
+    string state = "";
+    string messageDisplay = "none;";
+    string message = "";
+    string messageTyp = "";
+    string uploadSectionDisplay = "block;";
+    string detailSectionDisplay = "none;";
+    string progressSectionDisplay = "none;";
+    string? userUUID = "";
+
+    string? dbName;
+    string? fileName;
+    string? fullPath;
+    double fileSize;
+
+    string userStoragePath = $"{Directory.GetCurrentDirectory()}" + @"\UserStorage\";
+
+    List<string> collectionsNames = new List<string>();
+    List<string> checkedCollectionsNames = new List<string>();
+
+    Dictionary<string, string> collectionNameChanges = new Dictionary<string, string>();
+    bool adoptOid;
+    string selectAllText = "Select all";
+
+    protected override void OnInitialized()
+    {
+        userUUID = authManager.GetUUID();
+    }
+
+    void adoptOidChange(ChangeEventArgs e)
+    {
+        if(e.Value != null)
+        {
+            adoptOid = (bool)e.Value;
+        }
+    }
+
+    void updateChangedName(string originalCollectionName, ChangeEventArgs changedCollectionName)
+    {
+        if (changedCollectionName.Value == null) { return; }
+        string changedCollectionNameString  = changedCollectionName.Value.ToString() ?? string.Empty;
+        if(string.IsNullOrEmpty(changedCollectionNameString)){ return; }
+
+        if (collectionNameChanges.ContainsKey(originalCollectionName))
+        {
+            collectionNameChanges[originalCollectionName] = changedCollectionNameString;
+        }
+        else
+        {
+            collectionNameChanges.Add(originalCollectionName, changedCollectionNameString);
+        }
+    }
+
+    void checkboxChanged(ChangeEventArgs e, string collection)
+    {
+        if (e.Value != null)
+        {
+            var isChecked = (bool)e.Value;
+            if (isChecked)
+            {
+                checkedCollectionsNames.Add(collection);
+            }
+            else
+            {
+                checkedCollectionsNames.Remove(collection);
+            }
+        }
+        StateHasChanged();
+    }
+
+    void selectAllChanged(ChangeEventArgs e)
+    {
+        if (e.Value != null)
+        {
+            var isChecked = (bool)e.Value;
+            if (isChecked)
+            {
+                selectAllText = "Unselect all";
+                checkedCollectionsNames = collectionsNames.ToList();
+            }
+            else
+            {
+                selectAllText = "Select all";
+                checkedCollectionsNames.Clear();
+            }
+            StateHasChanged();
+        }
+    }
+
+    public async void Open()
+    {
+        modalDisplay = "block;";
+        await Task.Delay(100);
+        modalClass = "Show";
+        showBackdrop = true;
+        StateHasChanged();
+    }
+
+    public async void Close()
+    {
+        modalClass = "";
+        await Task.Delay(100);
+        modalDisplay = "none;";
+        showBackdrop = false;
+        StateHasChanged();
+    }
+
+    public IJSObjectReference? uploadedFile;
+
+    private async Task validateFile()
+    {
+        JsonElement fileInfo = await JSRuntime.InvokeAsync<JsonElement>("dragDropFunctions.getFile", "file-input");
+
+        fileSize = fileInfo.GetProperty("size").GetInt64();
+        fileSize = (fileSize / (1024 * 1024));
+        string fileName = fileInfo.GetProperty("name").ToString();
+
+        string fileExtension = fileName.Split('.').Last();
+        if (fileExtension != "json")
+        {
+            displayError("File extension is not .json");
+        }
+        uploadSectionDisplay = "none";
+        progressSectionDisplay = "block";
+        state = "File upload";
+        StateHasChanged();
+        fileName = await JSRuntime.InvokeAsync<string>("startChunkUpload", "file-input", guid);
+
+        if (String.IsNullOrEmpty(fileName) || String.IsNullOrEmpty(userUUID))
+        {
+            displayError("File upload failed");
+            return;
+        }
+
+        fullPath = Path.Combine(userStoragePath, userUUID + "/" + "uploads" + "/"+fileName);
+        state = "File proccesing";
+        StateHasChanged();
+
+        (dbName, collectionsNames) = await ImportManager.ProcessDBImportAsync(fullPath, guid);
+        checkedCollectionsNames = collectionsNames.ToList();
+
+        checkIfUploadIsValid();
+        progressSectionDisplay = "none";
+        detailSectionDisplay = "block";
+        StateHasChanged();
+    }
+
+    void checkIfUploadIsValid()
+    {
+        if (DBController.CheckIfDBExist(dbName))
+        {
+            displayWarning("Attention: The database: '" + dbName + "' currently exists. Modify the collection names if they are the same as the existing ones.");
+        }
+    }
+
+    async void importDB()
+    {
+        progressSectionDisplay = "block";
+        detailSectionDisplay = "none";
+        state = "File importing";
+        StateHasChanged();
+
+        bool success = await ImportManager.ImportCollectionsAsync(dbName, checkedCollectionsNames, collectionNameChanges, adoptOid, DBController, fullPath, guid);
+        if(success)
+        {
+            displaySuccess("Database imported successfully");
+        }
+        else
+        {
+            displayError("Database import failed");
+        }
+    }
+
+    void displayError(string _message)
+    {
+        messageTyp = "text-danger";
+        displayMessage(_message);
+    }
+
+    void displayWarning(string _message)
+    {
+        messageTyp = "text-warning";
+        displayMessage(_message);
+    }
+
+    void displaySuccess(string _message)
+    {
+        messageTyp = "text-success";
+        displayMessage(_message);
+    }
+
+    void displayMessage(string _message)
+    {
+        messageDisplay = "block;";
+        message = _message;
+        StateHasChanged();
+    }
+
+    void chooseAnother()
+    {
+        uploadSectionDisplay = "block;";
+        detailSectionDisplay = "none;";
+        messageDisplay = "none;";
+
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("dragDropFunctions.addEventListeners", "drop-area", "file-input", "file-name", JSRuntime);
+        }
+    }
+}

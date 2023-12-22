@@ -1,0 +1,322 @@
+﻿@using Controllers
+@using Newtonsoft.Json;
+@using Data.OTP;
+@using Data.Helpers
+
+
+@if (ShowBackdrop)
+{
+    <div class="modal-backdrop fade @ModalClass" style="display: @ModalDisplay"></div>
+}
+
+@code {
+    [Inject]
+    IHttpContextAccessor? HttpContextAccessor { get; set; }
+    @inject AuthManager authManager;
+
+    [Parameter]
+    public string? dbName{ get; set; }
+
+    [Parameter]
+    public string? collectionName { get; set; }
+
+    string userStoragePath = "";
+    string filename = "";
+
+    [Inject]
+    IJSRuntime? jsRuntime { get; set; }
+
+    string ConfirmationText { get; set; } = "";
+    bool? success = null;
+    string fileName = "";
+
+    [Parameter]
+    public string? type{ get; set; }
+
+    @inject DBController dBController
+    @inject OTPFileManagement otpFileManagement;
+    Guid guid = Guid.NewGuid();
+    string ModalDisplay = "none;";
+    string ModalClass = "";
+    bool ShowBackdrop = false;
+
+     async Task proccessDownload()
+    {
+        if (dbName is null || dBController is null) 
+            return;
+
+        userStoragePath = $"{Directory.GetCurrentDirectory()}" + @"\UserStorage\";
+        guid = Guid.NewGuid();
+        string lastFourChars = guid.ToString().Substring(guid.ToString().Length - 4);
+
+        string? userUUID = authManager.GetUUID();
+
+        userStoragePath = Path.Combine(userStoragePath, userUUID + "/downloads");
+
+        if (!Directory.Exists(userStoragePath))
+            Directory.CreateDirectory(userStoragePath);
+
+        if (type == "collection")
+        {
+            fileName = $"collection-{collectionName}-{lastFourChars}.json";
+        }
+        else if(type == "database")
+        {
+            fileName = $"db-{dbName}-{lastFourChars}.json";
+        }
+        StateHasChanged();
+        string filePath = Path.Combine(userStoragePath, fileName);
+        if (File.Exists(filePath))
+            File.Delete(filePath);
+
+
+        try
+        {
+            using (StreamWriter writer = new StreamWriter(filePath))
+            {
+                if (!string.IsNullOrEmpty(collectionName))
+                {
+                    await dBController.StreamCollectionExport(writer, dbName, collectionName, guid);
+                }
+                else
+                {
+                    await dBController.StreamAllCollectionExport(writer, dbName, guid);
+                }
+            }
+            if (File.Exists(filePath))
+            {
+                await DownloadFile(fileName);
+            }
+        }
+        catch (IOException e)
+        {
+            LogManager _ = new(LogManager.LogType.Error, "Streamwriter already in use",e);
+        }
+    }
+
+    private async Task DownloadFile(string fileName)
+    {
+        if (jsRuntime == null)
+            return;
+
+        await jsRuntime.InvokeVoidAsync("downloadURI", $"/DownloadFile?fileName={fileName}", fileName);
+    }
+
+    public async void Open()
+    {
+        ModalDisplay = "block;";
+        await Task.Delay(100);
+        ModalClass = "Show";
+        ShowBackdrop = true;
+        StateHasChanged();
+        await proccessDownload();
+    }
+
+    public async void Close()
+    {
+        ModalClass = "";
+        await Task.Delay(100);
+        ModalDisplay = "none";
+        ShowBackdrop = false;
+        StateHasChanged();
+    }
+}
+
+<div class="modal @ModalClass" tabindex="-1" role="dialog" style="display:@ModalDisplay">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content modal-dialog">
+            <div class="modal-header">
+                <h5 class="modal-title py-2">Download</h5>
+                <button type="button" class="btn-close blacktowhitetheme" data-dismiss="modal" @onclick="() => Close()" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input id="typeDB" value="type" type="hidden" />
+                <div>
+                    <progress id="ProgressBar" data-guid="@guid" max="100" value="0" style="min-width: 350px;" class="d-none"></progress>
+                    <p id="status-text" data-guid="@guid"></p>
+                    <p id="text" data-guid="@guid">
+                    Preparing the @type for download...<br />
+                    Please wait, dont leave this site</p>
+                </div>
+                <div class="container" data-guid="@guid" id="status-animation">
+
+                    <div class="h1Container">
+
+                        <div class="cube h1 w1 l1">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+
+                        <div class="cube h1 w1 l2">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+
+                        <div class="cube h1 w1 l3">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+
+                        <div class="cube h1 w2 l1">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+
+                        <div class="cube h1 w2 l2">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+
+                        <div class="cube h1 w2 l3">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+
+                        <div class="cube h1 w3 l1">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+
+                        <div class="cube h1 w3 l2">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+
+                        <div class="cube h1 w3 l3">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+                    </div>
+
+                    <div class="h2Container">
+
+                        <div class="cube h2 w1 l1">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+
+                        <div class="cube h2 w1 l2">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+
+                        <div class="cube h2 w1 l3">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+
+                        <div class="cube h2 w2 l1">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+
+                        <div class="cube h2 w2 l2">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+
+                        <div class="cube h2 w2 l3">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+
+                        <div class="cube h2 w3 l1">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+
+                        <div class="cube h2 w3 l2">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+
+                        <div class="cube h2 w3 l3">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+                    </div>
+
+                    <div class="h3Container">
+
+                        <div class="cube h3 w1 l1">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+
+                        <div class="cube h3 w1 l2">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+
+                        <div class="cube h3 w1 l3">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+
+                        <div class="cube h3 w2 l1">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+
+                        <div class="cube h3 w2 l2">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+
+                        <div class="cube h3 w2 l3">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+
+                        <div class="cube h3 w3 l1">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+
+                        <div class="cube h3 w3 l2">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+
+                        <div class="cube h3 w3 l3">
+                            <div class="face top"></div>
+                            <div class="face left"></div>
+                            <div class="face right"></div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="() => Close()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

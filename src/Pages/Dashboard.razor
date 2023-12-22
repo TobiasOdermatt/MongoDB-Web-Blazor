@@ -1,0 +1,55 @@
+﻿@page "/Dashboard"
+@page "/"
+@inject DBController DBController;
+@inject NavigationManager navigationmanager;
+
+@using MongoDB_Web.Pages.Component.Dashboard;
+@using Controllers
+<PageTitle>Dashboard</PageTitle>
+@code {
+     MongoDB_Web.Pages.Component.Dashboard.CreateDBModal? createDBModal { get; set; }
+     MongoDB_Web.Pages.Component.Dashboard.ImportDBModal? importDBModal { get; set; }
+}
+<CreateDBModal @ref="createDBModal"></CreateDBModal>
+<ImportDBModal @ref="importDBModal"></ImportDBModal>
+<div class="top-div">
+    <h3>List of all databases</h3>
+    @{
+        List<MongoDB.Bson.BsonDocument>? dbList = listAllDBs();
+        int count = dbList != null ? dbList.Count : 0;
+    }
+    <p class="second-text-color resultText">@count Databases found</p>
+    <button type="button" @onclick="() => createDBModal?.Open()" class="btn btn-primary navbutton float-end">Create database</button>
+    <button type="button" @onclick="() => importDBModal?.Open()" class="btn btn-primary navbutton float-end">Import</button>
+</div>
+<br />
+<div class="row bottom-div">
+    @if (dbList is not null)
+    {
+        @foreach (MongoDB.Bson.BsonDocument db in dbList)
+        {
+            if (!string.IsNullOrEmpty(db.GetValue("name").ToString()))
+            {
+                var stats = getDatabaseStatistics(db.GetValue("name").AsString);
+                <ShowDBCard DBObject="@db" Stats="@stats" />
+            }
+        }
+
+    }
+</div>
+@code {
+    List<MongoDB.Bson.BsonDocument>? listAllDBs()
+    {
+        var dbs = DBController.ListAllDatabases();
+        if(dbs == null)
+        {
+            navigationmanager.NavigateTo("api/Auth/Logout", true);
+        }
+        return dbs;
+    }
+
+    MongoDB.Bson.BsonDocument? getDatabaseStatistics(string dbName)
+    {
+       return DBController.GetDatabaseStatistics(dbName);
+    }
+}
