@@ -75,7 +75,10 @@ namespace MongoDB_Web.Data.DB
 
         private void log(string message, Exception? e = null)
         {
-            _ = new LogManager(LogType.Error, message, e);
+            if(e == null)
+                _ = new LogManager(LogType.Error, message);
+            else
+                _ = new LogManager(LogType.Error, message, e);
         }
 
 
@@ -85,8 +88,14 @@ namespace MongoDB_Web.Data.DB
                 return customString;
 
             return useAuthorization
-                ? $"mongodb://{username}:{password}@{dbHost}:{dbPort}/{dbRules}"
+                ? $"mongodb://{Sanitize(username)}:{Sanitize(password)}@{dbHost}:{dbPort}/{dbRules}"
                 : $"mongodb://{dbHost}:{dbPort}";
+        }
+
+        private static string Sanitize(string input)
+        {
+            input = input.Trim();
+            return Uri.EscapeDataString(input);
         }
 
 
