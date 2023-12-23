@@ -19,4 +19,5 @@ RUN dotnet publish "MongoDB_Web.csproj" -c Release -o /app/publish /p:UseAppHost
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+COPY config.properties /app/config.properties
 ENTRYPOINT ["dotnet", "MongoDB_Web.dll"]
