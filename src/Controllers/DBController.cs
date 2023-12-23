@@ -433,6 +433,13 @@ namespace MongoDB_Web.Controllers
                 var filter = Builders<BsonDocument>.Filter.Eq("_id", new ObjectId(id));
                 var updateDef = Builders<BsonDocument>.Update;
 
+                if (differences.ContainsKey("") && differences[""] is JObject replacementDoc)
+                {
+                    var replacementBson = BsonDocument.Parse(replacementDoc.ToString());
+                    await collection.ReplaceOneAsync(filter, replacementBson);
+                    return true;
+                }
+
                 foreach (var rename in renameMap)
                 {
                     var renameDefinition = updateDef.Rename(rename.Key, rename.Value);
@@ -441,15 +448,70 @@ namespace MongoDB_Web.Controllers
 
                 foreach (var diff in differences)
                 {
-                    var updateDefinition = updateDef.Set(diff.Key, diff.Value);
+                    BsonValue bsonValue;
+                    var value = diff.Value;
+
+                    if (value is JObject jObject)
+                    {
+                        bsonValue = BsonDocument.Parse(jObject.ToString());
+                    }
+                    else if (value == null)
+                    {
+                        bsonValue = BsonNull.Value;
+                    }
+                    else
+                    {
+                        bsonValue = ConvertToBsonValue(value);
+                    }
+
+                    var updateDefinition = updateDef.Set(diff.Key, bsonValue);
                     await collection.UpdateOneAsync(filter, updateDefinition);
                 }
+
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
                 return false;
             }
+        }
+
+
+        private BsonValue ConvertToBsonValue(object value)
+        {
+            switch (value)
+            {
+                case JObject jObject:
+                    return BsonDocument.Parse(jObject.ToString());
+
+                case JArray jArray:
+                    return ConvertJArrayToBsonArray(jArray);
+
+                case JValue jValue:
+                    return ConvertJValueToBsonValue(jValue);
+
+                case null:
+                    return BsonNull.Value;
+
+                default:
+                    var bsonValue = BsonValue.Create(value);
+                    return bsonValue;
+            }
+        }
+
+        private BsonArray ConvertJArrayToBsonArray(JArray jArray)
+        {
+            var bsonArray = new BsonArray();
+            foreach (var item in jArray)
+            {
+                bsonArray.Add(ConvertToBsonValue(item));
+            }
+            return bsonArray;
+        }
+
+        private BsonValue ConvertJValueToBsonValue(JValue jValue)
+        {
+            return BsonValue.Create(jValue.Value);
         }
 
         public bool DeleteAllDatabases()
