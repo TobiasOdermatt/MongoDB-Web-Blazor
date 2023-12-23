@@ -88,8 +88,14 @@ namespace MongoDB_Web.Data.DB
                 return customString;
 
             return useAuthorization
-                ? $"mongodb://{username}:{password}@{dbHost}:{dbPort}/{dbRules}"
+                ? $"mongodb://{Sanitize(username)}:{Sanitize(password)}@{dbHost}:{dbPort}/{dbRules}"
                 : $"mongodb://{dbHost}:{dbPort}";
+        }
+
+        private static string Sanitize(string input)
+        {
+            input = input.Trim();
+            return Uri.EscapeDataString(input);
         }
 
 
