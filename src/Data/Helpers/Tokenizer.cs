@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace MongoDB_Web.Data.Helpers
 {
@@ -25,18 +26,54 @@ namespace MongoDB_Web.Data.Helpers
             string preprocessedOldDocument = preprocessJson(OldDocument);
             string preprocessedDocument = preprocessJson(Document);
 
-            oldDoc = JsonConvert.DeserializeObject<Dictionary<string, object?>>(preprocessedOldDocument) ?? new Dictionary<string, object?>();
-            newDoc = JsonConvert.DeserializeObject<Dictionary<string, object?>>(preprocessedDocument) ?? new Dictionary<string, object?>();
+            var oldJObject = JObject.Parse(preprocessedOldDocument);
+            var newJObject = JObject.Parse(preprocessedDocument);
 
-            var differences = new Dictionary<string, object>();
-
-            foreach (var entry in newDoc)
+            if (!JToken.DeepEquals(oldJObject, newJObject))
             {
-                if (!oldDoc.ContainsKey(entry.Key) || (entry.Value != null && !entry.Value.Equals(oldDoc[entry.Key])))
-                {
-                    differences[entry.Key] = entry.Value == null ? "" : entry.Value;
-                }
+                return new Dictionary<string, object> { { "", newJObject } };
+            }
 
+            var differences = FindDifferences(oldJObject, newJObject);
+
+            return differences.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
+        }
+
+
+        private Dictionary<string, JToken> FindDifferences(JToken oldToken, JToken newToken)
+        {
+            var differences = new Dictionary<string, JToken>();
+
+            if (oldToken.Type != newToken.Type)
+            {
+                differences[""] = newToken;
+            }
+            else if (oldToken.Type == JTokenType.Object)
+            {
+                var oldObject = (JObject)oldToken;
+                var newObject = (JObject)newToken;
+
+                foreach (var property in newObject.Properties())
+                {
+                    var oldProperty = oldObject.Property(property.Name);
+
+                    if (oldProperty == null)
+                    {
+                        differences[property.Name] = property.Value;
+                    }
+                    else
+                    {
+                        var nestedDifferences = FindDifferences(oldProperty.Value, property.Value);
+                        foreach (var kvp in nestedDifferences)
+                        {
+                            differences[property.Name + (kvp.Key == "" ? "" : "." + kvp.Key)] = kvp.Value;
+                        }
+                    }
+                }
+            }
+            else if (!JToken.DeepEquals(oldToken, newToken))
+            {
+                differences[""] = newToken;
             }
 
             return differences;
