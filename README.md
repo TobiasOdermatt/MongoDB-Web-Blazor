@@ -28,7 +28,7 @@ docker build -t mongodb-web-client .
 docker run -p 8080:80 -d mongodb-web-client
 ```
 
-## Access MongoDB from Host
+## Access MongoDB from Host on Mac/Windows
 If you wish to connect to your MongoDB server from your host machine, update the `config.properties` file's database host to:
 
 ```
