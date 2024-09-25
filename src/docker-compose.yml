@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+  mongodb-client:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:80"
+    networks:
+      - test
+      
+networks:
+  test:
+    external: true
+    name: test
+    driver: bridge
